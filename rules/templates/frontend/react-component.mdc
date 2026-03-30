@@ -1,0 +1,41 @@
+---
+description: "React 组件开发规范。当创建或修改 React 组件文件时自动加载。"
+globs: "src/components/**/*.tsx,src/components/**/*.jsx,src/**/*.tsx,src/**/*.jsx"
+alwaysApply: false
+---
+
+# React 组件规范（L2 项目层模板）
+
+## 文件结构
+
+每个组件一个目录：
+```
+ComponentName/
+├── index.tsx          ← 组件主文件
+├── types.ts           ← Props 和内部类型定义
+├── styles.ts          ← 样式（如使用 CSS-in-JS）
+└── __tests__/
+    └── ComponentName.test.tsx
+```
+
+## 命名规范
+
+- 组件文件：PascalCase（`UserProfile.tsx`）
+- 组件目录：PascalCase（`UserProfile/`）
+- Props 接口：`{ComponentName}Props`
+- 事件处理函数：`handle{EventName}`（`handleSubmit`、`handleChange`）
+
+## 组件规范
+
+- Props 必须定义 TypeScript interface，禁止使用 `any`
+- 必须为 Props 提供合理的默认值（使用默认参数）
+- 组件必须处理加载状态、空状态、错误状态
+- 列表渲染必须提供唯一且稳定的 `key`
+
+## 禁止
+
+- 禁止在组件内直接调用 API（通过 hooks 或 props 传入）
+- 禁止使用 `any` 类型
+- 禁止内联样式（使用 CSS 类或 CSS-in-JS）
+- 禁止在渲染函数中定义新函数（提取到组件外或使用 useCallback）
+- 禁止直接修改 props 或 state

@@ -1,0 +1,34 @@
+---
+description: "Go 错误处理和代码规范。当创建或修改 Go 文件时自动加载。"
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Go 代码规范（L2 项目层模板）
+
+## 错误处理
+
+- 所有错误必须检查，禁止使用 `_` 忽略错误
+- 使用 `fmt.Errorf("操作描述: %w", err)` 包装错误，保留调用链
+- 自定义错误类型使用 `errors.New` 或实现 `error` 接口
+- 在函数入口处校验参数，尽早返回错误
+
+## 命名规范
+
+- 包名：小写，单词（`userservice`，不是 `user_service`）
+- 接口名：以 `er` 结尾（`Reader`、`Writer`、`Handler`）
+- 错误变量：`Err` 前缀（`ErrNotFound`、`ErrUnauthorized`）
+- 上下文参数：始终命名为 `ctx`，且作为第一个参数
+
+## 并发规范
+
+- 共享状态必须使用 mutex 或 channel 保护
+- goroutine 必须有明确的退出机制
+- 使用 `context` 传递取消信号和超时
+
+## 禁止
+
+- 禁止在 goroutine 中 panic（使用 recover 捕获）
+- 禁止全局可变变量（使用依赖注入）
+- 禁止裸 `interface{}`（使用泛型或具体类型）
+- 禁止忽略 `defer` 中的错误（如 `rows.Close()`）

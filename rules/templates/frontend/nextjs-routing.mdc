@@ -1,0 +1,33 @@
+---
+description: "Next.js 路由和页面规范。当创建或修改 Next.js 页面文件时自动加载。"
+globs: "app/**/*.tsx,app/**/*.ts,pages/**/*.tsx,pages/**/*.ts"
+alwaysApply: false
+---
+
+# Next.js 路由规范（L2 项目层模板）
+
+## App Router 规范（Next.js 13+）
+
+- 页面文件：`app/{route}/page.tsx`
+- 布局文件：`app/{route}/layout.tsx`
+- 加载状态：`app/{route}/loading.tsx`
+- 错误边界：`app/{route}/error.tsx`
+- 服务端组件默认，客户端组件加 `'use client'` 指令
+
+## 数据获取
+
+- 服务端组件使用 `async/await` 直接获取数据
+- 客户端数据获取使用 SWR 或 TanStack Query
+- 敏感操作使用 Server Actions，不暴露 API 路由
+
+## 路由规范
+
+- 动态路由使用 `[param]` 命名
+- 路由组使用 `(groupName)` 命名（不影响 URL）
+- API 路由放在 `app/api/` 目录
+
+## 禁止
+
+- 禁止在客户端组件中直接访问数据库
+- 禁止在服务端组件中使用 useState/useEffect
+- 禁止硬编码路由路径（使用常量或类型安全的路由工具）

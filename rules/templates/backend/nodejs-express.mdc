@@ -1,0 +1,43 @@
+---
+description: "Node.js Express/Koa 后端开发规范。当创建或修改后端 JS/TS 文件时自动加载。"
+globs: "src/**/*.ts,src/**/*.js,server/**/*.ts,server/**/*.js"
+alwaysApply: false
+---
+
+# Node.js 后端规范（L2 项目层模板）
+
+## 分层架构
+
+```
+routes/          ← HTTP 路由（只处理请求/响应）
+controllers/     ← 控制器（参数校验、调用 Service）
+services/        ← 业务逻辑层
+repositories/    ← 数据访问层
+models/          ← 数据模型定义
+middlewares/     ← 中间件（认证、日志、错误处理）
+```
+
+## 异步处理
+
+- 所有异步操作使用 `async/await`，禁止回调嵌套
+- 路由处理函数必须用 `try/catch` 包裹，或使用统一的错误处理中间件
+- 使用 Promise.all 并行执行独立的异步操作
+
+## 错误处理
+
+- 统一的错误处理中间件放在所有路由之后
+- 自定义错误类包含 `statusCode` 和 `message`
+- 生产环境不暴露错误堆栈
+
+## 命名规范
+
+- 文件名：`camelCase.ts` 或 `kebab-case.ts`（项目统一）
+- 类名：`PascalCase`
+- 函数/变量：`camelCase`
+- 常量：`UPPER_SNAKE_CASE`
+
+## 禁止
+
+- 禁止在 Service 层直接操作 HTTP 请求/响应对象
+- 禁止在路由层包含业务逻辑
+- 禁止使用 `require()` 混用 ES Module（统一使用 import/export）

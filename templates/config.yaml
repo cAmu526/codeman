@@ -1,0 +1,79 @@
+# CodeMan 项目配置
+# 由 init.sh 自动生成，可手动修改
+
+# 项目基本信息
+project:
+  name: "{{项目名称}}"
+  type: "{{frontend|backend|fullstack}}"
+  version: "1.0.0"
+
+# 技术栈配置
+tech_stack:
+  frontend:
+    framework: "{{react|nextjs|vue|none}}"
+    language: "{{typescript|javascript}}"
+    styling: "{{tailwind|css-modules|styled-components|none}}"
+    ui_library: "{{shadcn|antd|mui|none}}"
+  backend:
+    language: "{{nodejs|go|python|none}}"
+    framework: "{{express|fastapi|gin|none}}"
+    database: "{{postgresql|mysql|mongodb|none}}"
+    orm: "{{prisma|typeorm|gorm|sqlalchemy|none}}"
+  testing:
+    unit: "{{vitest|jest|pytest|go-test}}"
+    e2e: "{{playwright|cypress|none}}"
+    ui_visual: "{{midscene|none}}"
+
+# 测试配置
+testing:
+  unit_coverage_threshold:
+    business_logic: 80    # 核心业务逻辑覆盖率要求（%）
+    utility_functions: 90 # 工具函数覆盖率要求（%）
+  ui_visual_testing: true  # 是否启用 UI 视觉测试（Midscene.js）
+  l5_nonfunctional: false  # 是否启用非功能测试（性能/安全/可访问性）
+
+# Token 成本控制
+token_limits:
+  warning_threshold: 100000   # 警告阈值（tokens）
+  hard_limit: 500000          # 硬限制（tokens），超过后暂停并保存进度
+  preferred_model: "sonnet"   # 默认模型（sonnet|opus|haiku）
+
+# 工作流配置
+workflow:
+  auto_git_commit: true        # 每个模块完成后自动 Git commit
+  require_review_before_code: true  # 技术方案必须经过 Review 才能编码
+  require_review_after_code: true   # 编码完成后必须经过 Review 才能测试
+  max_fix_rounds: 3            # 修复闭环最大轮次
+
+# 规范配置
+rules:
+  # 使用的规范模板（从 codeman/rules/templates/ 复制到 .codeman/rules/）
+  templates:
+    - "global-git-convention"
+    - "global-code-quality"
+    - "global-security-baseline"
+    # 根据技术栈自动添加：
+    # - "frontend/react-component"
+    # - "frontend/nextjs-routing"
+    # - "frontend/vitest-testing"
+    # - "backend/go-error-handling"
+    # - "backend/python-fastapi"
+    # - "backend/nodejs-express"
+
+# 安全配置
+security:
+  # 排除敏感文件，不进入 AI 上下文
+  ignore_patterns:
+    - ".env"
+    - ".env.*"
+    - "*.pem"
+    - "*.key"
+    - "secrets/**"
+    - "credentials/**"
+
+# 外部工具配置
+tools:
+  playwright_mcp: true    # 是否使用 Playwright MCP 进行 E2E 测试
+  midscene_config:
+    model: "qwen-vl-max"  # Midscene.js 使用的视觉模型
+    timeout: 30000        # 操作超时时间（ms）

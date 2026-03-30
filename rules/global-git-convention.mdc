@@ -1,0 +1,43 @@
+---
+description: "Git 提交规范和分支命名规范。始终应用于所有 Git 操作。"
+alwaysApply: true
+---
+
+# Git 规范（全局 L1）
+
+## 提交信息格式（Conventional Commits）
+
+```
+{type}({scope}): {description}
+
+{body}
+
+{footer}
+```
+
+**type 类型：**
+- `feat`: 新功能
+- `fix`: Bug 修复
+- `docs`: 文档变更
+- `style`: 代码格式（不影响逻辑）
+- `refactor`: 重构（不是新功能也不是修复）
+- `test`: 测试相关
+- `chore`: 构建/工具/依赖变更
+
+**规则：**
+- description 使用中文，简洁描述变更内容
+- body 说明为什么做这个变更（可选）
+- footer 引用 PRD 功能点 ID（如 `Refs: F001`）
+
+## 分支命名
+
+- 功能分支：`feature/{功能名}`
+- Bug 修复：`fix/{问题描述}`
+- 发布分支：`release/{版本号}`
+
+## 禁止
+
+- 禁止直接提交到 main/master 分支
+- 禁止提交包含密钥、密码、token 的文件
+- 禁止提交 `.env` 文件（只提交 `.env.example`）
+- 禁止提交 `node_modules/`、`dist/`、`build/` 等构建产物

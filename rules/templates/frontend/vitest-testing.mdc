@@ -1,0 +1,45 @@
+---
+description: "Vitest 和 Testing Library 测试规范。当创建或修改测试文件时自动加载。"
+globs: "**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx"
+alwaysApply: false
+---
+
+# 前端测试规范（L2 项目层模板）
+
+## 测试文件结构
+
+```typescript
+describe('{组件/函数名}', () => {
+  describe('{场景描述}', () => {
+    it('should {预期行为}', () => {
+      // Arrange
+      // Act
+      // Assert
+    });
+  });
+});
+```
+
+## 命名规范
+
+- 测试描述使用 `should {预期行为}` 格式
+- 测试文件与被测文件同名，加 `.test` 后缀
+
+## 组件测试（Testing Library）
+
+- 使用语义化查询：`getByRole` > `getByLabelText` > `getByText` > `getByTestId`
+- 禁止使用 CSS 选择器查询（`querySelector`）
+- 测试用户行为，不测试实现细节
+- 异步操作使用 `waitFor` 或 `findBy*`
+
+## 断言规范
+
+- 使用具体的断言，避免过于宽泛
+- 测试错误状态和边界条件，不只测试 Happy Path
+- Mock 外部依赖（API、第三方库）
+
+## 禁止
+
+- 禁止测试组件内部状态（只测试外部行为）
+- 禁止在测试中使用 `setTimeout`（使用 `vi.useFakeTimers`）
+- 禁止测试间共享可变状态（每个测试独立）
