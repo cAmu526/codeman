@@ -803,6 +803,12 @@ if [ -d "${HOME}/.claude" ] || command -v claude &>/dev/null 2>&1 || [ "$ACTIVE_
     bash "${CODEMAN_DIR}/adapters/claude-code/generate-claude-md.sh" "${PROJECT_DIR}" "${CODEMAN_DIR}"
 fi
 
+# 同步到 OpenCode（如果 OpenCode 已安装，或存在 ~/.config/opencode/）
+if command -v opencode &>/dev/null 2>&1 || [ -d "${HOME}/.config/opencode" ]; then
+    bash "${CODEMAN_DIR}/adapters/opencode/sync-rules.sh" "${PROJECT_DIR}"
+    bash "${CODEMAN_DIR}/adapters/opencode/generate-agents-md.sh" "${PROJECT_DIR}" "${CODEMAN_DIR}"
+fi
+
 # ─────────────────────────────────────────
 # Step 12: 检查冲突
 # ─────────────────────────────────────────
@@ -831,6 +837,23 @@ if [ -f "${PROJECT_DIR}/.claude/CLAUDE.md" ]; then
     if ! grep -q "<!-- CODEMAN START -->" "${PROJECT_DIR}/.claude/CLAUDE.md" 2>/dev/null; then
         echo -e "${YELLOW}  发现已有 .claude/CLAUDE.md 文件。${NC}"
         echo "  CodeMan 片段已用标记包裹追加，不会覆盖您的现有内容。"
+        CONFLICT_FOUND=true
+    fi
+fi
+
+# OpenCode 冲突检查
+if [ -f "${PROJECT_DIR}/AGENTS.md" ]; then
+    if ! grep -q "<!-- CODEMAN START -->" "${PROJECT_DIR}/AGENTS.md" 2>/dev/null; then
+        echo -e "${YELLOW}  发现已有 AGENTS.md 文件。${NC}"
+        echo "  CodeMan 片段已用标记包裹追加，不会覆盖您的现有内容。"
+        CONFLICT_FOUND=true
+    fi
+fi
+
+if [ -f "${PROJECT_DIR}/opencode.json" ]; then
+    if ! grep -q ".codeman/rules" "${PROJECT_DIR}/opencode.json" 2>/dev/null; then
+        echo -e "${YELLOW}  发现已有 opencode.json 文件。${NC}"
+        echo "  CodeMan 规范引用已追加到 instructions 字段，不会覆盖您的现有配置。"
         CONFLICT_FOUND=true
     fi
 fi
@@ -883,6 +906,10 @@ fi
 if [ -d "${HOME}/.claude" ] || command -v claude &>/dev/null 2>&1 || [ "$ACTIVE_HOST" = "claude-code" ]; then
     echo "  .claude/rules/      ← 已同步到 Claude Code"
     echo "  .claude/CLAUDE.md   ← 已注入 CodeMan 片段"
+fi
+if command -v opencode &>/dev/null 2>&1 || [ -d "${HOME}/.config/opencode" ]; then
+    echo "  AGENTS.md           ← 已同步到 OpenCode"
+    echo "  opencode.json       ← 已配置 rules 引用"
 fi
 echo ""
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# CodeMan v0.3 安装脚本
+# CodeMan 安装脚本
 # 用法：bash /path/to/codeman/install.sh
-# 自动检测 Cursor / Claude Code 环境，安装到对应目录
+# 自动检测 Cursor / Claude Code / OpenCode 环境，安装到对应目录
 
 set -e
 
@@ -18,11 +18,14 @@ CODEMAN_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ─────────────────────────────────────────
 CURSOR_INSTALL_DIR="${HOME}/.cursor/skills/.codeman"
 CLAUDE_INSTALL_DIR="${HOME}/.claude/skills/.codeman"
+OPENCODE_INSTALL_DIR="${HOME}/.claude/skills/.codeman"
 CURSOR_RULES_DIR="${HOME}/.cursor/rules"
 CLAUDE_DIR="${HOME}/.claude"
+OPENCODE_CONFIG_DIR="${HOME}/.config/opencode"
 
 HAS_CURSOR=false
 HAS_CLAUDE=false
+HAS_OPENCODE=false
 
 # 检测 Cursor：存在 ~/.cursor/ 目录
 [ -d "${HOME}/.cursor" ] && HAS_CURSOR=true
@@ -30,6 +33,11 @@ HAS_CLAUDE=false
 # 检测 Claude Code：存在 ~/.claude/ 目录，或 claude 命令可用
 if [ -d "${HOME}/.claude" ] || command -v claude &>/dev/null 2>&1; then
     HAS_CLAUDE=true
+fi
+
+# 检测 OpenCode：opencode 命令可用，或存在 ~/.config/opencode/ 目录
+if command -v opencode &>/dev/null 2>&1 || [ -d "${HOME}/.config/opencode" ]; then
+    HAS_OPENCODE=true
 fi
 
 echo ""
@@ -41,35 +49,46 @@ echo ""
 echo "检测到的环境："
 [ "$HAS_CURSOR" = true ] && echo -e "  ${GREEN}✅ Cursor${NC}" || echo -e "  ⬜ Cursor（未检测到 ~/.cursor/）"
 [ "$HAS_CLAUDE" = true ] && echo -e "  ${GREEN}✅ Claude Code${NC}" || echo -e "  ⬜ Claude Code（未检测到 ~/.claude/ 或 claude 命令）"
+[ "$HAS_OPENCODE" = true ] && echo -e "  ${GREEN}✅ OpenCode${NC}" || echo -e "  ⬜ OpenCode（未检测到 opencode 命令）"
 echo ""
 
-# 如果两者都未检测到，询问用户
-if [ "$HAS_CURSOR" = false ] && [ "$HAS_CLAUDE" = false ]; then
-    echo -e "${YELLOW}未自动检测到 Cursor 或 Claude Code。${NC}"
+# 统计检测到的环境数量
+ENV_COUNT=0
+[ "$HAS_CURSOR" = true ] && ENV_COUNT=$((ENV_COUNT + 1))
+[ "$HAS_CLAUDE" = true ] && ENV_COUNT=$((ENV_COUNT + 1))
+[ "$HAS_OPENCODE" = true ] && ENV_COUNT=$((ENV_COUNT + 1))
+
+# 如果都未检测到，询问用户
+if [ "$ENV_COUNT" -eq 0 ]; then
+    echo -e "${YELLOW}未自动检测到任何 AI IDE 环境。${NC}"
     echo "请选择安装目标："
     echo "  1) Cursor"
     echo "  2) Claude Code"
-    echo "  3) 两者都安装"
-    read -p "请输入选项 [1/2/3]: " ENV_CHOICE
+    echo "  3) OpenCode"
+    echo "  4) 全部安装"
+    read -p "请输入选项 [1/2/3/4]: " ENV_CHOICE
     case "$ENV_CHOICE" in
         1) HAS_CURSOR=true ;;
         2) HAS_CLAUDE=true ;;
-        3) HAS_CURSOR=true; HAS_CLAUDE=true ;;
+        3) HAS_OPENCODE=true ;;
+        4) HAS_CURSOR=true; HAS_CLAUDE=true; HAS_OPENCODE=true ;;
         *) echo "无效选项，退出。"; exit 1 ;;
     esac
 fi
 
-# 如果两者都检测到，询问用户
-if [ "$HAS_CURSOR" = true ] && [ "$HAS_CLAUDE" = true ]; then
-    echo "检测到两个环境，请选择安装目标："
+# 如果检测到多个环境，询问用户
+if [ "$ENV_COUNT" -gt 1 ]; then
+    echo "检测到多个环境，请选择安装目标："
     echo "  1) 仅 Cursor"
     echo "  2) 仅 Claude Code"
-    echo "  3) 两者都安装（推荐）"
-    read -p "请输入选项 [1/2/3，默认 3]: " ENV_CHOICE
+    echo "  3) 仅 OpenCode"
+    echo "  4) 全部安装（推荐）"
+    read -p "请输入选项 [1/2/3/4，默认 4]: " ENV_CHOICE
     case "$ENV_CHOICE" in
-        1) HAS_CLAUDE=false ;;
-        2) HAS_CURSOR=false ;;
-        3|"") ;;
+        1) HAS_CLAUDE=false; HAS_OPENCODE=false ;;
+        2) HAS_CURSOR=false; HAS_OPENCODE=false ;;
+        3) HAS_CURSOR=false; HAS_CLAUDE=false ;;
+        4|"") ;;
         *) echo "无效选项，退出。"; exit 1 ;;
     esac
 fi
@@ -251,6 +270,94 @@ print('  已更新 CLAUDE.md 中的 CodeMan 片段')
 fi
 
 # ─────────────────────────────────────────
+# 安装到 OpenCode
+# ─────────────────────────────────────────
+if [ "$HAS_OPENCODE" = true ]; then
+    echo -e "${GREEN}[OpenCode] Step 1: 安装框架到 ${OPENCODE_INSTALL_DIR}...${NC}"
+    mkdir -p "${OPENCODE_INSTALL_DIR}"
+    rsync -a --exclude='.git' --exclude='*.bak' "${CODEMAN_SRC}/" "${OPENCODE_INSTALL_DIR}/"
+    echo "  已安装到：${OPENCODE_INSTALL_DIR}"
+
+    # OpenCode 通过 Claude Code 兼容层读取 ~/.claude/skills/<name>/SKILL.md
+    # 确保符号链接已创建
+    echo -e "${GREEN}[OpenCode] Step 1b: 链接 ~/.claude/skills/codeman-*（skills）...${NC}"
+    bash "${CODEMAN_SRC}/adapters/claude-code/link-skills.sh" "${OPENCODE_INSTALL_DIR}"
+
+    # 生成全局 AGENTS.md bootstrap 片段
+    # OpenCode 优先读取 ~/.config/opencode/AGENTS.md，其次 ~/.claude/CLAUDE.md
+    echo -e "${GREEN}[OpenCode] Step 2: 生成全局 AGENTS.md bootstrap 片段...${NC}"
+    mkdir -p "${OPENCODE_CONFIG_DIR}"
+    AGENTS_MD="${OPENCODE_CONFIG_DIR}/AGENTS.md"
+
+    CODEMAN_BLOCK_OPENCODE='<!-- CODEMAN START -->
+# CodeMan 已安装
+
+你已安装 CodeMan 全流程开发工作流框架。
+
+## 核心规则
+
+当用户说以下任意命令时，你必须立即读取并执行 orchestrator Skill：
+
+```
+Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
+```
+
+**触发命令列表：**
+- `CodeMan 初始化` — 在当前项目初始化 CodeMan（新项目或旧项目接入）
+- `CodeMan 开始开发` — 启动完整开发流程
+- `CodeMan 新需求：[描述]` — 版本迭代
+- `CodeMan 继续` — 断点续做
+- `CodeMan 修复：[描述]` — 轻量修复
+- `CodeMan 状态` — 查看当前进度
+- `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
+
+## Skills 路径
+
+OpenCode 通过 Claude Code 兼容层读取 `~/.claude/skills/<name>/SKILL.md`。安装脚本已创建 `~/.claude/skills/codeman-*` 符号链接。
+
+| Skill | 名称 |
+|-------|------|
+| orchestrator（入口） | codeman-orchestrator |
+| requirements | codeman-requirements |
+| design | codeman-design |
+| development | codeman-development |
+| testing | codeman-testing |
+| review | codeman-review |
+| fix | codeman-fix |
+| deploy | codeman-deploy |
+| evolve | codeman-evolve |
+
+## 重要说明
+
+- orchestrator 是唯一入口，所有场景都从它开始
+- 不要直接调用其他 Skill，由 orchestrator 按流程调度
+- 项目文档存放在项目的 `.codeman/docs/` 目录，跟着项目走
+<!-- CODEMAN END -->'
+
+    if [ -f "$AGENTS_MD" ]; then
+        if grep -q "<!-- CODEMAN START -->" "$AGENTS_MD" 2>/dev/null; then
+            python3 -c "
+import re, sys
+content = open('${AGENTS_MD}').read()
+block = '''${CODEMAN_BLOCK_OPENCODE}'''
+new_content = re.sub(r'<!-- CODEMAN START -->.*?<!-- CODEMAN END -->', block, content, flags=re.DOTALL)
+open('${AGENTS_MD}', 'w').write(new_content)
+print('  已更新 AGENTS.md 中的 CodeMan 片段')
+"
+        else
+            echo "" >> "$AGENTS_MD"
+            echo "$CODEMAN_BLOCK_OPENCODE" >> "$AGENTS_MD"
+            echo "  已追加 CodeMan 片段到 ${AGENTS_MD}"
+        fi
+    else
+        echo "$CODEMAN_BLOCK_OPENCODE" > "$AGENTS_MD"
+        echo "  已创建 ${AGENTS_MD}"
+    fi
+
+    echo ""
+fi
+
+# ─────────────────────────────────────────
 # 验证安装
 # ─────────────────────────────────────────
 echo -e "${GREEN}验证安装...${NC}"
@@ -304,6 +411,32 @@ if [ "$HAS_CLAUDE" = true ]; then
     fi
 fi
 
+if [ "$HAS_OPENCODE" = true ]; then
+    echo "  [OpenCode]"
+    for skill in "${SKILLS[@]}"; do
+        skill_path="${OPENCODE_INSTALL_DIR}/skills/${skill}/SKILL.md"
+        if [ -f "$skill_path" ]; then
+            echo -e "    ${GREEN}✅ ${skill}${NC}"
+        else
+            echo -e "    ${RED}❌ ${skill}（文件缺失）${NC}"
+            ALL_OK=false
+        fi
+    done
+    if [ -f "${HOME}/.claude/skills/codeman-orchestrator/SKILL.md" ]; then
+        echo -e "    ${GREEN}✅ ~/.claude/skills/codeman-*（skills 链接）${NC}"
+    else
+        echo -e "    ${RED}❌ ~/.claude/skills/codeman-*（skills 链接缺失）${NC}"
+        ALL_OK=false
+    fi
+    OPENCODE_AGENTS="${OPENCODE_CONFIG_DIR}/AGENTS.md"
+    if [ -f "$OPENCODE_AGENTS" ] && grep -q "CODEMAN START" "$OPENCODE_AGENTS" 2>/dev/null; then
+        echo -e "    ${GREEN}✅ ~/.config/opencode/AGENTS.md（CodeMan 片段已注入）${NC}"
+    else
+        echo -e "    ${RED}❌ ~/.config/opencode/AGENTS.md（CodeMan 片段缺失）${NC}"
+        ALL_OK=false
+    fi
+fi
+
 # ─────────────────────────────────────────
 # 完成
 # ─────────────────────────────────────────
@@ -327,6 +460,12 @@ if [ "$ALL_OK" = true ]; then
         echo "     CodeMan 初始化"
         echo "  或直接使用斜杠命令："
         echo "     /codeman-orchestrator"
+        echo ""
+    fi
+    if [ "$HAS_OPENCODE" = true ]; then
+        echo -e "${YELLOW}[OpenCode] 下一步：${NC}"
+        echo "  1. 打开任意项目目录，在 OpenCode 中说："
+        echo "     CodeMan 初始化"
         echo ""
     fi
     echo "  CodeMan 会自动识别是新项目还是旧项目，并完成初始化。"
