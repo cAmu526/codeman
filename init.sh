@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # CodeMan v0.3 初始化脚本
-# 由 AI 通过 Shell 工具调用，或手动执行：bash ~/.cursor/skills/.codeman/init.sh
+# 由 AI 通过 Shell 工具调用，或手动执行：
+#   bash ~/.cursor/skills/.codeman/init.sh   （Cursor 环境）
+#   bash ~/.claude/skills/.codeman/init.sh   （Claude Code 环境）
 # 在目标项目根目录执行
 
 set -e
@@ -13,12 +15,36 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# CodeMan 框架固定安装路径（install.sh 安装后路径固定）
-CODEMAN_DIR="${HOME}/.cursor/skills/.codeman"
-# 如果安装路径不存在（开发调试时），回退到脚本所在目录
-if [ ! -d "$CODEMAN_DIR" ]; then
-    CODEMAN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ─────────────────────────────────────────
+# 检测运行环境（Cursor / Claude Code）
+# ─────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 优先使用脚本所在目录推断安装路径
+if [[ "$SCRIPT_DIR" == *"/.claude/"* ]]; then
+    ACTIVE_HOST="claude-code"
+    CODEMAN_DIR="${HOME}/.claude/skills/.codeman"
+elif [[ "$SCRIPT_DIR" == *"/.cursor/"* ]]; then
+    ACTIVE_HOST="cursor"
+    CODEMAN_DIR="${HOME}/.cursor/skills/.codeman"
+else
+    # 开发调试：脚本从源码目录运行，检测已安装的环境
+    CODEMAN_DIR="$SCRIPT_DIR"
+    if [ -d "${HOME}/.claude/skills/.codeman" ]; then
+        ACTIVE_HOST="claude-code"
+    elif [ -d "${HOME}/.cursor/skills/.codeman" ]; then
+        ACTIVE_HOST="cursor"
+    else
+        # 两者都未安装，默认 cursor（向后兼容）
+        ACTIVE_HOST="cursor"
+    fi
 fi
+
+# 如果安装路径不存在，回退到脚本所在目录（开发调试）
+if [ ! -d "$CODEMAN_DIR" ]; then
+    CODEMAN_DIR="$SCRIPT_DIR"
+fi
+
 # 目标项目目录（执行脚本时的当前目录）
 PROJECT_DIR="$(pwd)"
 
@@ -762,11 +788,20 @@ cat > "${PROJECT_DIR}/.codeman/skills/INDEX.md" << 'EOF'
 EOF
 
 # ─────────────────────────────────────────
-# Step 11: 同步到 Cursor
+# Step 11: 同步规范到 IDE
 # ─────────────────────────────────────────
-echo -e "${GREEN}Step 11: 同步到 Cursor...${NC}"
+echo -e "${GREEN}Step 11: 同步规范到 IDE...${NC}"
 
-bash "${CODEMAN_DIR}/adapters/cursor/sync-rules.sh" "${PROJECT_DIR}" "${CODEMAN_DIR}"
+# 同步到 Cursor（如果 Cursor 已安装）
+if [ -d "${HOME}/.cursor" ] || [ "$ACTIVE_HOST" = "cursor" ]; then
+    bash "${CODEMAN_DIR}/adapters/cursor/sync-rules.sh" "${PROJECT_DIR}" "${CODEMAN_DIR}"
+fi
+
+# 同步到 Claude Code（如果 Claude Code 已安装）
+if [ -d "${HOME}/.claude" ] || command -v claude &>/dev/null 2>&1 || [ "$ACTIVE_HOST" = "claude-code" ]; then
+    bash "${CODEMAN_DIR}/adapters/claude-code/sync-rules.sh" "${PROJECT_DIR}"
+    bash "${CODEMAN_DIR}/adapters/claude-code/generate-claude-md.sh" "${PROJECT_DIR}" "${CODEMAN_DIR}"
+fi
 
 # ─────────────────────────────────────────
 # Step 12: 检查冲突
@@ -775,6 +810,7 @@ echo -e "${GREEN}Step 12: 检查规范冲突...${NC}"
 
 CONFLICT_FOUND=false
 
+# Cursor 冲突检查
 if [ -f "${PROJECT_DIR}/.cursorrules" ]; then
     echo -e "${YELLOW}  发现已有 .cursorrules 文件。${NC}"
     echo "  CodeMan 规范已加 'codeman-' 前缀，不会覆盖您的现有规范。"
@@ -786,6 +822,15 @@ if [ -d "${PROJECT_DIR}/.cursor/rules" ]; then
     if [ "$EXISTING_RULES" -gt 0 ]; then
         echo -e "${YELLOW}  发现 ${EXISTING_RULES} 个已有 Cursor Rules。${NC}"
         echo "  CodeMan 规范已加 'codeman-' 前缀，不会覆盖您的现有规范。"
+        CONFLICT_FOUND=true
+    fi
+fi
+
+# Claude Code 冲突检查
+if [ -f "${PROJECT_DIR}/.claude/CLAUDE.md" ]; then
+    if ! grep -q "<!-- CODEMAN START -->" "${PROJECT_DIR}/.claude/CLAUDE.md" 2>/dev/null; then
+        echo -e "${YELLOW}  发现已有 .claude/CLAUDE.md 文件。${NC}"
+        echo "  CodeMan 片段已用标记包裹追加，不会覆盖您的现有内容。"
         CONFLICT_FOUND=true
     fi
 fi
@@ -832,7 +877,13 @@ echo "  .codeman/           ← CodeMan 工作目录"
 echo "  .codeman/config.yaml"
 echo "  .codeman/docs/      ← 文档体系"
 echo "  .codeman/rules/     ← 项目规范"
-echo "  .cursor/rules/      ← 已同步到 Cursor"
+if [ -d "${HOME}/.cursor" ] || [ "$ACTIVE_HOST" = "cursor" ]; then
+    echo "  .cursor/rules/      ← 已同步到 Cursor"
+fi
+if [ -d "${HOME}/.claude" ] || command -v claude &>/dev/null 2>&1 || [ "$ACTIVE_HOST" = "claude-code" ]; then
+    echo "  .claude/rules/      ← 已同步到 Claude Code"
+    echo "  .claude/CLAUDE.md   ← 已注入 CodeMan 片段"
+fi
 echo ""
 
 # 输出结构化摘要（供 AI 读取，判断下一步流程）
