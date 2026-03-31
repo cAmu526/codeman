@@ -37,7 +37,15 @@ alwaysApply: true
 
 ## 禁止
 
+- **禁止执行 `git push`** — AI 绝对不允许推送代码到远程仓库，推送操作必须由用户手动执行
+- 禁止执行 `git push --force`、`git push -f` 等任何变体
 - 禁止直接提交到 main/master 分支
 - 禁止提交包含密钥、密码、token 的文件
 - 禁止提交 `.env` 文件（只提交 `.env.example`）
 - 禁止提交 `node_modules/`、`dist/`、`build/` 等构建产物
+
+## 允许
+
+- 允许执行 `git add` 和 `git commit`（必须写明 commit message）
+- commit message 必须遵循上述 Conventional Commits 格式
+- 允许执行 `git status`、`git diff`、`git log` 等只读操作

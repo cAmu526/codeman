@@ -321,6 +321,8 @@ git commit -m "feat({模块名}): {功能描述}
 Refs: F{ID}"
 ```
 
+**⚠️ 绝对禁止执行 `git push`。推送操作必须由用户手动完成。**
+
 ### Step 8: 更新 STATUS.md
 
 每个模块完成后更新进度：

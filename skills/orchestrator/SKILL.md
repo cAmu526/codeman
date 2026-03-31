@@ -575,6 +575,30 @@ CodeMan 进度
 
 ---
 
+## Git 操作限制（全局硬规则，所有 Skill 必须遵守）
+
+**核心原则：AI 可以 commit，绝对不能 push。推送代码到远程仓库是用户的专属权利。**
+
+| 操作 | 权限 | 说明 |
+|------|------|------|
+| `git status` | ✅ 允许 | 只读操作 |
+| `git diff` | ✅ 允许 | 只读操作 |
+| `git log` | ✅ 允许 | 只读操作 |
+| `git add` | ✅ 允许 | 暂存文件 |
+| `git commit -m "..."` | ✅ 允许 | 必须写明 commit message，遵循 Conventional Commits |
+| `git push` | ❌ **绝对禁止** | 推送操作必须由用户手动执行 |
+| `git push --force` | ❌ **绝对禁止** | 任何变体都不允许 |
+| `git push -u origin ...` | ❌ **绝对禁止** | 包含 -u 参数的也不允许 |
+| `git reset --hard` | ❌ 禁止 | 破坏性操作 |
+| `git rebase` | ❌ 禁止 | 可能导致冲突 |
+
+**commit 规范：**
+- message 必须遵循 Conventional Commits 格式：`type(scope): description`
+- type 包含：feat / fix / docs / style / refactor / test / chore
+- body 说明变更原因，footer 引用 PRD 功能点 ID
+
+---
+
 ## 场景零：项目初始化流程
 
 用户说「CodeMan 初始化」时执行，无论新项目还是旧项目都从这里开始。
