@@ -169,6 +169,10 @@ if [ "$HAS_CLAUDE" = true ]; then
     rsync -a --exclude='.git' --exclude='*.bak' "${CODEMAN_SRC}/" "${CLAUDE_INSTALL_DIR}/"
     echo "  已安装到：${CLAUDE_INSTALL_DIR}"
 
+    # Claude Code：skill 须在 ~/.claude/skills/<name>/ 且 <name> 与 SKILL.md 的 name 一致，否则 /codeman-orchestrator 报 Unknown skill
+    echo -e "${GREEN}[Claude Code] Step 1b: 链接 ~/.claude/skills/codeman-*（斜杠命令）...${NC}"
+    bash "${CODEMAN_SRC}/adapters/claude-code/link-skills.sh" "${CLAUDE_INSTALL_DIR}"
+
     echo -e "${GREEN}[Claude Code] Step 2: 生成全局 CLAUDE.md bootstrap 片段...${NC}"
     mkdir -p "${CLAUDE_DIR}"
     CLAUDE_MD="${CLAUDE_DIR}/CLAUDE.md"
@@ -198,7 +202,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 
 ## Skills 路径
 
-所有 Skills 位于 \`~/.claude/skills/.codeman/skills/\`（Claude Code 自动发现，可用 /skill-name 直接调用）：
+框架源文件在 \`~/.claude/skills/.codeman/skills/\`。Claude Code 的斜杠命令要求 \`~/.claude/skills/<name>/\` 与 SKILL.md 里 \`name\` 一致；安装脚本已创建 \`~/.claude/skills/codeman-*\` 符号链接，请用下方命令调用：
 
 | Skill | 斜杠命令 |
 |-------|---------|
@@ -285,6 +289,12 @@ if [ "$HAS_CLAUDE" = true ]; then
             ALL_OK=false
         fi
     done
+    if [ -f "${HOME}/.claude/skills/codeman-orchestrator/SKILL.md" ]; then
+        echo -e "    ${GREEN}✅ ~/.claude/skills/codeman-*（斜杠命令链接）${NC}"
+    else
+        echo -e "    ${RED}❌ ~/.claude/skills/codeman-*（斜杠命令链接缺失，请重新运行 install.sh）${NC}"
+        ALL_OK=false
+    fi
     CLAUDE_MD="${CLAUDE_DIR}/CLAUDE.md"
     if [ -f "$CLAUDE_MD" ] && grep -q "CODEMAN START" "$CLAUDE_MD" 2>/dev/null; then
         echo -e "    ${GREEN}✅ ~/.claude/CLAUDE.md（CodeMan 片段已注入）${NC}"

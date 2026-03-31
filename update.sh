@@ -72,6 +72,7 @@ if [ "$HAS_CLAUDE" = true ]; then
         --exclude='*.bak' \
         "${CODEMAN_SRC}/" "${CLAUDE_INSTALL_DIR}/"
     echo "  ✅ [Claude Code] Skills、rules、templates 已全量更新"
+    bash "${CODEMAN_SRC}/adapters/claude-code/link-skills.sh" "${CLAUDE_INSTALL_DIR}"
 fi
 
 # ─────────────────────────────────────────
@@ -160,7 +161,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 
 ## Skills 路径
 
-所有 Skills 位于 `~/.claude/skills/.codeman/skills/`（Claude Code 自动发现，可用 /skill-name 直接调用）：
+框架源文件在 `~/.claude/skills/.codeman/skills/`。Claude Code 的斜杠命令要求 `~/.claude/skills/<name>/` 与 SKILL.md 里 `name` 一致；安装/升级脚本已创建 `~/.claude/skills/codeman-*` 符号链接，请用下方命令调用：
 
 | Skill | 斜杠命令 |
 |-------|---------|
@@ -234,6 +235,12 @@ if [ "$HAS_CLAUDE" = true ]; then
             ALL_OK=false
         fi
     done
+    if [ -f "${HOME}/.claude/skills/codeman-orchestrator/SKILL.md" ]; then
+        echo -e "    ${GREEN}✅ ~/.claude/skills/codeman-*（斜杠命令链接）${NC}"
+    else
+        echo -e "    ${RED}❌ ~/.claude/skills/codeman-*（斜杠命令链接缺失）${NC}"
+        ALL_OK=false
+    fi
 fi
 
 # ─────────────────────────────────────────

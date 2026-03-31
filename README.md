@@ -366,7 +366,10 @@ A：可以。`.codeman/docs/` 文档是环境无关的，两个 IDE 都能读取
 **Q：Claude Code 中如何触发 CodeMan？**
 A：两种方式：
 1. 直接说命令：`CodeMan 初始化`、`CodeMan 开始开发` 等（Claude Code 会读取 `~/.claude/CLAUDE.md` 中的引导）
-2. 使用斜杠命令：`/codeman-orchestrator`（Claude Code 自动发现 `~/.claude/skills/.codeman/` 中的 Skills）
+2. 使用斜杠命令：`/codeman-orchestrator`（由 `~/.claude/skills/codeman-orchestrator/` 提供，安装脚本会创建指向框架目录的符号链接）
+
+**Q：输入 `/codeman-orchestrator` 提示 Unknown skill？**
+A：Claude Code 要求 skill 目录名与 `SKILL.md` 里 `name` 字段一致，且位于 `~/.claude/skills/<name>/`。请重新运行 `bash /path/to/codeman/install.sh`（或 `update.sh`），或手动执行：`bash /path/to/codeman/adapters/claude-code/link-skills.sh ~/.claude/skills/.codeman`。完成后可运行 `/skills` 确认已列出 `codeman-orchestrator`。
 
 **Q：没有设计稿/截图怎么办？**
 A：设计资产引用是可选的。需求分析阶段会询问你是否有设计截图，回复"无设计稿"即可跳过，后续基于文字描述开发。截图机制不会阻塞任何流程。

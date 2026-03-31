@@ -93,6 +93,14 @@ fi
 
 # 卸载 Claude Code
 if [ "$HAS_CLAUDE_INSTALL" = true ]; then
+    for name in codeman-orchestrator codeman-requirements codeman-design codeman-development \
+            codeman-testing codeman-review codeman-fix codeman-deploy codeman-evolve; do
+        target="${HOME}/.claude/skills/${name}"
+        if [ -L "$target" ]; then
+            rm -f "$target"
+            echo -e "  ${GREEN}✅ 已删除符号链接 ${target}${NC}"
+        fi
+    done
     rm -rf "$CLAUDE_INSTALL_DIR"
     echo -e "  ${GREEN}✅ 已删除 ${CLAUDE_INSTALL_DIR}${NC}"
 fi
