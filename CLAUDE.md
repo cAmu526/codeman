@@ -31,4 +31,4 @@
 - 本项目使用 Bash + Python3 编写，不引入额外依赖
 - Shell 脚本必须兼容 macOS bash 3.x+ 和 Linux bash 4.x+
 - Skills 的 frontmatter `name` 字段必须与目录名一致
-- 规则文件使用 `.mdc` 格式，遵循 Cursor 规范
+- 规则文件使用 `.mdc` 作为源格式，各 IDE 适配器负责转换为各自的格式（Cursor 用 `.mdc`，Claude Code 用 `.md`，OpenCode 用 `instructions` 引用）
