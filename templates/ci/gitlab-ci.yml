@@ -1,0 +1,111 @@
+# CodeMan CI/CD — GitLab CI 测试自动化
+# 由 CodeMan 初始化时生成，可手动调整
+#
+# 回归级别对应关系：
+#   push → Smoke 冒烟测试
+#   merge_request → Regression 标准回归
+#   手动触发 / tag → Full 全量测试
+
+stages:
+  - smoke
+  - regression
+  - full
+
+variables:
+  NODE_ENV: test
+
+# ============================================================
+# Smoke 冒烟测试（push 触发，3-5 分钟）
+# ============================================================
+smoke:
+  stage: smoke
+  image: mcr.microsoft.com/playwright:v1.40.0-jammy
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$TEST_LEVEL == "smoke"'
+      when: manual
+  timeout: 10 minutes
+  script:
+    - npm ci
+    - npm test                                             # L1 全跑
+    - npx playwright test tests/integration/ --grep smoke  # L2b 抽样
+    - npx playwright test tests/e2e/ --grep smoke          # L3 主流程
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+    expire_in: 7 days
+
+# ============================================================
+# Regression 标准回归（MR 触发，10-20 分钟）
+# ============================================================
+regression:
+  stage: regression
+  image: mcr.microsoft.com/playwright:v1.40.0-jammy
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$TEST_LEVEL == "regression"'
+      when: manual
+  timeout: 30 minutes
+  script:
+    - npm ci
+    - npx playwright install --with-deps
+    - npm test -- --coverage                    # L1
+    - npm run test:db || true                   # L2a
+    - npx playwright test tests/integration/    # L2b
+    - npx playwright test tests/e2e/            # L3
+    - npx playwright test tests/visual/         # L4
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+      - playwright-report/
+    expire_in: 7 days
+
+# ============================================================
+# Full 全量测试（手动触发 / tag，30-60 分钟）
+# ============================================================
+.full_template: &full_template
+  stage: full
+  image: mcr.microsoft.com/playwright:v1.40.0-jammy
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$TEST_LEVEL == "full"'
+      when: manual
+  timeout: 60 minutes
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+      - playwright-report/
+    expire_in: 30 days
+
+full:chromium:
+  <<: *full_template
+  script:
+    - npm ci
+    - npx playwright install --with-deps
+    - npm test -- --coverage
+    - npm run test:db
+    - npx playwright test tests/integration/
+    - npx playwright test tests/e2e/ --project=chromium
+    - npx playwright test tests/e2e/network/ --project=chromium
+    - npx playwright test tests/visual/ --project=chromium
+    - bash tests/nonfunctional/run-performance.sh
+    - bash tests/nonfunctional/run-security.sh
+
+full:firefox:
+  <<: *full_template
+  script:
+    - npm ci
+    - npx playwright install --with-deps
+    - npx playwright test tests/e2e/ --project=firefox
+    - npx playwright test tests/visual/ --project=firefox
+
+full:webkit:
+  <<: *full_template
+  script:
+    - npm ci
+    - npx playwright install --with-deps
+    - npx playwright test tests/e2e/ --project=webkit
+    - npx playwright test tests/visual/ --project=webkit

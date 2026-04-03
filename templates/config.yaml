@@ -30,7 +30,143 @@ testing:
     business_logic: 80    # 核心业务逻辑覆盖率要求（%）
     utility_functions: 90 # 工具函数覆盖率要求（%）
   ui_visual_testing: true  # 是否启用 UI 视觉测试（Midscene.js）
-  l5_nonfunctional: false  # 是否启用非功能测试（性能/安全/可访问性）
+
+  # L5 非功能测试配置（各子项独立开关，执行前会逐项询问用户）
+  l5_nonfunctional:
+    enabled: false  # 总开关，false 时跳过所有 L5
+
+    # ── 性能测试 ──
+    performance:
+      enabled: true  # 是否启用性能测试
+      # Lighthouse 前端性能阈值（每个页面逐项检查）
+      lighthouse:
+        lcp: 2500         # Largest Contentful Paint（ms），≤ 2500 为 Good
+        fid: 100          # First Input Delay（ms），≤ 100 为 Good
+        cls: 0.1          # Cumulative Layout Shift，≤ 0.1 为 Good
+        performance_score: 80  # 综合性能评分（0-100）
+      # k6 后端 API 压测场景
+      k6:
+        baseline:              # 基准测试：验证正常负载下的响应时间
+          vus: 10              # 并发虚拟用户数
+          duration: "30s"      # 持续时间
+          thresholds:
+            p95: 200           # P95 响应时间（ms）
+            p99: 500           # P99 响应时间（ms）
+        stress:                # 压力测试：验证高负载下是否降级而非崩溃
+          vus: 50
+          duration: "60s"
+          thresholds:
+            p95: 500
+            p99: 1000
+        spike:                 # 峰值测试：验证突发流量的处理能力
+          vus: 100
+          duration: "10s"
+          thresholds:
+            p95: 1000
+            error_rate: 0.01   # 错误率 ≤ 1%
+      # 内存泄漏检测（仅 Full 级别回归时执行）
+      memory_leak:
+        enabled: true
+        operation_rounds: 50   # 重复操作轮次
+        growth_threshold: 20   # 内存增长阈值（MB），超过视为泄漏
+
+    # ── 安全测试 ──
+    security:
+      enabled: true  # 是否启用安全测试
+      # 自动化执行的检测项
+      automated:
+        - npm_audit            # 依赖漏洞扫描
+        - xss_detection        # XSS 跨站脚本检测
+        - csrf_detection       # CSRF 跨站请求伪造检测
+        - sql_injection        # SQL 注入检测
+        - auth_bypass          # 越权访问检测（无 token / 伪造 token / 过期 token）
+        - sensitive_data_leak  # 响应体/页面/日志敏感信息泄露检测
+      # 建议清单（不自动执行，询问用户后可手动触发）
+      manual_checklist:
+        - logic_vulnerability  # 业务逻辑漏洞（如支付金额篡改、越权操作）
+        - rate_limiting        # 接口限流是否生效
+        - file_upload_safety   # 文件上传类型/大小/内容校验
+        - session_management   # 会话管理（并发登录、强制下线等）
+
+    # ── 可访问性测试 ──
+    accessibility:
+      enabled: true  # 是否启用可访问性测试
+      # WCAG 标准级别：
+      #   A   — 最低级别，基本可访问（如：所有图片有 alt 文本）
+      #   AA  — 行业标准，大多数法规要求（如：颜色对比度 ≥ 4.5:1，键盘可导航，表单有标签）
+      #   AAA — 最严格，增强可访问（如：对比度 ≥ 7:1，无时间限制，手语翻译）
+      standard: "AA"  # 默认 AA，可选 A / AA / AAA
+      # 工具：axe-core（@axe-core/playwright）
+      score_threshold: 90  # 可访问性评分阈值（0-100）
+
+  # 网络异常测试配置
+  network_conditions:
+    # 弱网模拟 profile（Playwright route 延迟参数）
+    slow_3g:
+      latency: 100         # 额外延迟（ms）
+      download: 750        # 下行带宽（kbps）
+      upload: 250          # 上行带宽（kbps）
+    # 接口超时阈值（超过此时间视为超时）
+    timeout_threshold: 10000  # ms
+    # 自定义 profile（可按需添加）
+    # slow_2g:
+    #   latency: 300
+    #   download: 250
+    #   upload: 50
+
+  # 兼容性测试配置
+  compatibility:
+    # 浏览器引擎（Playwright 原生支持）
+    # 默认全部启用，执行前会确认用户本次要跑哪些
+    browsers:
+      - chromium     # Google Chrome / Microsoft Edge
+      - firefox      # Mozilla Firefox
+      - webkit       # Apple Safari
+    # 设备模拟（Playwright device descriptors）
+    # 默认三档，可按项目需要增减
+    devices:
+      - "iPhone 14"        # iOS Safari 移动端
+      - "Pixel 7"          # Android Chrome 移动端
+      - "iPad Pro 11"      # 平板端
+    # 真机测试（可选增强，需要外部服务）
+    real_device:
+      enabled: false                   # 是否启用真机测试
+      provider: "none"                 # browserstack | saucelabs | none
+      # browserstack_config:
+      #   username: "${BROWSERSTACK_USERNAME}"
+      #   access_key: "${BROWSERSTACK_ACCESS_KEY}"
+
+# 回归测试配置
+regression:
+  # 冒烟测试：每个功能最多标记的 [smoke] 用例数
+  smoke_max_per_feature: 3
+  # 标准回归默认范围
+  regression_scope:
+    - L1
+    - L2a
+    - L2b
+    - L3
+    - L4
+  # 全量测试默认范围
+  full_scope:
+    - L1
+    - L2a
+    - L2b
+    - L3
+    - L3-network   # 网络异常批次
+    - L4
+    - L5
+    - compatibility
+
+# CI/CD 配置（初始化时询问用户，默认不开启）
+ci:
+  enabled: false                    # 是否启用 CI/CD 自动化测试
+  platform: "none"                  # github_actions | gitlab_ci | none
+  # 以下配置仅在 enabled: true 时生效
+  smoke_on_push: true               # push 时自动跑冒烟
+  regression_on_pr: true            # PR/MR 时自动跑标准回归
+  full_on_tag: true                 # tag 发版时自动跑全量
+  block_merge_on_failure: true      # 测试失败时阻断合并
 
 # Token 成本控制
 token_limits:

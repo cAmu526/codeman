@@ -1,0 +1,196 @@
+# CodeMan CI/CD — GitHub Actions 测试自动化
+# 由 CodeMan 初始化时生成，可手动调整
+#
+# 回归级别对应关系：
+#   push → Smoke 冒烟测试
+#   pull_request → Regression 标准回归
+#   手动触发 / tag → Full 全量测试
+
+name: CodeMan Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: '回归级别'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - smoke
+          - regression
+          - full
+
+env:
+  NODE_ENV: test
+
+jobs:
+  # ============================================================
+  # Smoke 冒烟测试（push 触发，3-5 分钟）
+  # ============================================================
+  smoke:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.test_level == 'smoke')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: L1 — 单元测试（全跑）
+        run: npm test
+
+      - name: L2b — API 集成冒烟（抽样）
+        run: npx playwright test tests/integration/ --grep smoke
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: L3 — E2E 冒烟（主流程）
+        run: npx playwright test tests/e2e/ --grep smoke
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results
+          path: test-results/
+
+  # ============================================================
+  # Regression 标准回归（PR 触发，10-20 分钟）
+  # ============================================================
+  regression:
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.test_level == 'regression')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: L1 — 单元测试
+        run: npm test -- --coverage
+
+      - name: L2a — DB 直查
+        run: npm run test:db
+        continue-on-error: true
+
+      - name: L2b — API 集成（全部）
+        run: npx playwright test tests/integration/
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: L3 — E2E 端到端（全部）
+        run: npx playwright test tests/e2e/ --ignore-snapshots
+
+      - name: L4 — UI 视觉测试
+        run: npx playwright test tests/visual/
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-results
+          path: |
+            test-results/
+            playwright-report/
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            // 读取测试结果摘要（需根据实际框架调整路径）
+            let summary = '## 🧪 回归测试结果\n\n';
+            summary += '| 层级 | 状态 |\n|------|------|\n';
+            summary += '| L1 单元测试 | ${{ steps.l1.outcome == \'success\' && \'✅\' || \'❌\' }} |\n';
+            summary += '| L2b API 集成 | ${{ steps.l2b.outcome == \'success\' && \'✅\' || \'❌\' }} |\n';
+            summary += '| L3 E2E | ${{ steps.l3.outcome == \'success\' && \'✅\' || \'❌\' }} |\n';
+            summary += '| L4 视觉 | ${{ steps.l4.outcome == \'success\' && \'✅\' || \'❌\' }} |\n';
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: summary
+            });
+
+  # ============================================================
+  # Full 全量测试（手动触发 / tag 发版，30-60 分钟）
+  # ============================================================
+  full:
+    if: github.event_name == 'workflow_dispatch' && inputs.test_level == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: L1 — 单元测试
+        run: npm test -- --coverage
+
+      - name: L2a — DB 直查
+        run: npm run test:db
+
+      - name: L2b — API 集成
+        run: npx playwright test tests/integration/
+
+      - name: L3 — E2E 端到端
+        run: npx playwright test tests/e2e/ --project=${{ matrix.browser }}
+
+      - name: L3 — 网络异常批次
+        run: npx playwright test tests/e2e/network/ --project=${{ matrix.browser }}
+
+      - name: L4 — UI 视觉测试
+        run: npx playwright test tests/visual/ --project=${{ matrix.browser }}
+
+      - name: L5 — 性能测试
+        run: bash tests/nonfunctional/run-performance.sh
+        if: matrix.browser == 'chromium'
+
+      - name: L5 — 安全扫描
+        run: bash tests/nonfunctional/run-security.sh
+        if: matrix.browser == 'chromium'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-results-${{ matrix.browser }}
+          path: |
+            test-results/
+            playwright-report/

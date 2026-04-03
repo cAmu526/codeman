@@ -147,13 +147,16 @@ AI 通过**八维**头脑风暴帮你拓展需求，然后收敛为结构化的 
 | L1 | 单元测试 | 编码时已同步生成，此阶段自动验证并补充 |
 | L2a | DB 直查 | 直连数据库验证表结构、迁移、初始数据（无需 API 认证） |
 | L2b | API 集成 | API 测试脚本 + **响应数据格式全面校验**（字段类型、枚举值、嵌套结构、数组格式，基于 API/技术文档而非代码） |
-| L3 | E2E 端到端 | **Playwright 浏览器自动化** + **对照 PRD 原型图校验布局结构和交互逻辑** |
+| L3 | E2E 端到端 | **Playwright 浏览器自动化** + **对照 PRD 原型图校验布局结构和交互逻辑**（含 8 类前端场景 + 4 类网络异常场景：弱网/离线恢复/接口超时/请求中断，独立批次执行） |
 | L4 | UI 视觉测试 | Midscene.js 自然语言断言 + Playwright 截图对比 + **逐项对照设计稿校验样式** |
-| L5 | 非功能测试 | 命令行自动化（Lighthouse / k6 / npm audit） |
+| 兼容性 | 多浏览器 + 多设备 | L3/L4 在 Chromium/Firefox/WebKit + iPhone/Android/iPad 上复跑（默认 Chromium，执行前确认范围，支持 BrowserStack 真机增强） |
+| L5 | 非功能测试 | **性能**（Lighthouse 逐页面 + k6 三场景压测 + 内存泄漏检测）+ **安全**（OWASP 自动化检测 + 手动建议清单）+ **可访问性**（axe-core WCAG AA 逐页面扫描），各子项独立开关，执行前逐项确认 |
 
 **防虚假通过机制：** 每个用例必须有实际执行证据（脚本输出 / API 响应体 / 截图）才能标 ✅，严禁凭代码审查推断通过。标记前强制自检 5 项 checklist，续测模式自动审计降级无证据的 ✅。
 
 **测试校验来源原则：** API 数据格式的预期来自技术文档/API 文档（严禁从代码反推）；UI 布局和交互的预期来自 PRD ASCII 原型图、UI 设计要求、设计截图/Figma（多来源冲突时暂停确认）。
+
+**回归测试策略：** 三级回归（Smoke 冒烟 3-5 分钟 / Regression 标准 10-20 分钟 / Full 全量 30-60 分钟），每次代码修改后提醒触发回归。影响分析两层机制（路径规则自动匹配 + AI 补充判断）智能追加回归范围。可选 CI/CD 集成（GitHub Actions / GitLab CI），push 自动冒烟、PR 自动回归、失败阻断合并。
 
 测试完成后额外执行精粹卡验收标准交叉校验，确保每条关键验收标准都有 E2E 覆盖。
 
@@ -433,7 +436,7 @@ codeman/
 │   ├── deploy/SKILL.md           ← 部署清单（环境 + 迁移 + 回滚）
 │   └── evolve/SKILL.md           ← 自进化（沉淀规范 + 动态创建规则）
 ├── rules/                        ← 内置编码规范模板
-├── templates/                    ← 文档模板
+├── templates/                    ← 文档模板 + CI/CD 配置模板（ci/github-actions.yml, ci/gitlab-ci.yml）
 └── adapters/
     ├── cursor/                   ← Cursor IDE 适配脚本
     │   ├── sync-rules.sh         ← 同步规范到 .cursor/rules/
