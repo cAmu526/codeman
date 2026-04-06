@@ -253,6 +253,29 @@ UI 设计资产（如有截图）
 - 错误处理必须显式，不得静默吞掉错误
 - 如 PRD 中有设计截图引用，编码 UI 组件前必须先用 Read 工具读取截图文件，理解视觉布局后再编码
 - 如发现需要添加 PRD 未提及的功能或逻辑，必须标注 [UNCERTAIN: PRD 未提及] 并等待确认
+- **前端交互元素必须添加 `data-testid` 属性**，为 E2E 测试提供稳定的定位锚点（不依赖文案/样式类名，改文案不会导致测试全挂）
+
+**`data-testid` 命名规范：**
+
+| 元素类型 | 命名格式 | 示例 |
+|---------|---------|------|
+| 按钮 | `{模块}-{动作}-btn` | `data-testid="user-register-btn"` |
+| 表单 | `{模块}-form` | `data-testid="login-form"` |
+| 输入框 | `{模块}-{字段}-input` | `data-testid="register-email-input"` |
+| 列表容器 | `{模块}-list` | `data-testid="user-list"` |
+| 列表行 | `{模块}-row` | `data-testid="user-row"` |
+| 弹窗/抽屉 | `{模块}-{类型}` | `data-testid="visit-modal"` |
+| 下拉触发器 | `{模块}-{字段}-select` | `data-testid="visit-opportunity-select"` |
+| 提示/反馈 | `{类型}-msg` | `data-testid="success-msg"` |
+
+**必须加 `data-testid` 的元素（最小集合）：**
+- 所有用户可点击的按钮（提交/取消/新增/删除/编辑）
+- 所有表单输入框
+- 所有下拉选择器的触发器
+- 列表/表格的容器和行
+- 弹窗/抽屉的容器
+- 成功/错误/loading 反馈元素
+- 导航菜单项
 
 **编码顺序（推荐）：**
 1. 数据模型/类型定义
