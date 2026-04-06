@@ -78,6 +78,48 @@
 **用例编号格式：** `TC-{功能ID}-{层级}-{序号} [{自动化程度}]`
 示例：`TC-F001-L3-01 [全自动]`、`TC-F002-L2-03 [半自动-认证]`
 
+### 断言模式规范（黑名单 + 白名单）
+
+**测试脚本的断言质量决定了测试结果的可信度。** 断言写得差等于没测 — 脚本"通过"了但什么都没验证。以下规范在编写 L2/L3 脚本时必须严格遵守。
+
+#### 禁止断言模式黑名单
+
+**以下断言模式严格禁止使用，无论在任何测试层级。这些模式的共同特征是"恒为真"或"验证了不该验证的东西"。**
+
+| 禁止模式 | 为什么禁止 | 示例（禁止写出这样的代码） |
+|---------|---------|------------------------|
+| **HTML 全文关键词匹配** | 页面 HTML 中 label/属性名/注释都可能包含关键词，永远为 true | `expect(await page.content()).toContain('商机')` — 匹配到的是 label 文案不是下拉数据 |
+| **`page.content()` + includes/match** | 同上，HTML 全文搜索无法验证具体元素的状态 | `const has = (await page.content()).includes('筛选')` |
+| **恒为真的断言** | 数学上永远成立，不可能失败 | `expect(await locator.count()).toBeGreaterThanOrEqual(0)` — count ≥ 0 恒为真 |
+| **硬编码通过** | 跳过了实际验证 | `expect(true).toBe(true)` 或直接写 `// 已通过代码 Review` |
+| **只截图不断言** | 截图不等于验证，没有机器断言就没有自动化价值 | 只调用 `screenshot()` 后标注"需人工核查" |
+| **操作后不验证状态变化** | 无法证明操作生效 | 点击了提交按钮，但没检查 URL 变化/toast/列表更新 |
+| **只验证元素存在** | `toBeVisible()` 只证明元素在 DOM 中，不证明内容/布局/交互正确 | 整个用例只有 `expect(button).toBeVisible()` 没有后续操作和验证 |
+
+#### 正确断言模式白名单
+
+**编写断言时，必须从以下白名单中选择对应场景的模式。不在白名单中的断言方式需要说明理由。**
+
+| 验证场景 | 必须使用的断言模式 | 代码示例 |
+|---------|-----------------|---------|
+| **下拉框有数据** | 点击展开 → 等待选项出现 → 计数 → 大于 0 | `await trigger.click(); await page.waitForSelector('[role=option]'); expect(await page.locator('[role=option]').count()).toBeGreaterThan(0);` |
+| **列表有数据** | 等待行渲染 → 计数 tbody tr → 大于 0 | `await page.waitForSelector('tbody tr'); expect(await page.locator('tbody tr').count()).toBeGreaterThan(0);` |
+| **筛选/搜索生效** | 操作前 count → 执行筛选 → 操作后 count → 不相等或减少 | `const before = await rows.count(); await filterInput.fill('test'); await page.waitForTimeout(500); const after = await rows.count(); expect(after).not.toBe(before);` |
+| **表单提交成功** | 填写 → 提交 → 等待成功标志（URL 变化/toast/跳转） | `await submitBtn.click(); await expect(page).toHaveURL(/\/list/); // 或 await expect(page.locator('.toast-success')).toBeVisible();` |
+| **布局结构（行数）** | 查询特定容器内的行/列数 → 精确断言 | `expect(await page.locator('thead tr').count()).toBe(1); // 表头应为 1 行` |
+| **文案内容** | 定位到具体元素 → 验证 textContent → 精确匹配 | `expect(await page.locator('[data-testid="submit-btn"]').textContent()).toBe('立即注册');` |
+| **数值计算** | 获取页面显示值 → 与预期计算结果精确比较 | `const total = await page.locator('.total').textContent(); expect(total).toBe('89.70');` |
+| **状态切换** | 操作前状态 → 执行操作 → 操作后状态 → 两者不同 | `expect(await btn.isDisabled()).toBe(false); await btn.click(); expect(await btn.isDisabled()).toBe(true);` |
+| **删除生效** | 操作前 count → 删除 → 确认 → 操作后 count = 前 - 1 | `const before = await rows.count(); await deleteBtn.click(); await confirmBtn.click(); expect(await rows.count()).toBe(before - 1);` |
+| **弹窗/抽屉关闭** | 关闭操作 → 等待动画 → 断言不可见 | `await closeBtn.click(); await expect(page.locator('.modal')).not.toBeVisible();` |
+| **权限控制** | 以无权限角色访问 → 断言看不到/被拦截 | `expect(await page.locator('[data-testid="admin-panel"]').count()).toBe(0);` |
+
+**白名单使用规则：**
+- 编写断言时，先判断当前验证场景属于上表哪一类
+- 按对应的断言模式编写，可调整选择器但不改变断言逻辑
+- 如果场景不在白名单中，需要在用例注释中说明断言逻辑的合理性
+- **白名单的核心原则：每个断言必须「操作 → 等待 → 验证具体值/状态变化」，不允许只验证存在性或用全文搜索**
+
 ### Step 0: 生成测试数据初始化脚本
 
 **在生成任何测试用例之前，先为项目生成测试数据初始化脚本。** 这是所有自动化测试的基础。
