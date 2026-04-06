@@ -473,7 +473,11 @@ codeman/
 │   ├── requirements/SKILL.md     ← 需求分析（头脑风暴 → PRD 碎片）
 │   ├── design/SKILL.md           ← 技术方案（模块拆分 + API 设计）
 │   ├── development/SKILL.md      ← 开发实现（对照编码 + 同步单测）
-│   ├── testing/SKILL.md          ← 测试验证（L1-L5 金字塔）
+│   ├── testing/                   ← 测试验证（分阶段加载，减少上下文压力）
+│   │   ├── SKILL.md              ← 主文件：核心原则 + 跨阶段共享规则（~440 行）
+│   │   ├── phase1-generation.md  ← 阶段一：用例生成 + 脚本编写（~2100 行）
+│   │   ├── phase2-execution.md   ← 阶段二：逐层执行 + 回归策略（~790 行）
+│   │   └── report-template.md    ← 测试报告模板（~160 行）
 │   ├── review/SKILL.md           ← Review 门禁（自动审查 + 问题修复）
 │   ├── fix/SKILL.md              ← 修复闭环（根因分析 + 回归验证）
 │   ├── deploy/SKILL.md           ← 部署清单（环境 + 迁移 + 回滚）
