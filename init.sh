@@ -812,6 +812,11 @@ if command -v opencode &>/dev/null 2>&1 || [ -d "${HOME}/.config/opencode" ]; th
     bash "${CODEMAN_DIR}/adapters/opencode/generate-agents-md.sh" "${PROJECT_DIR}" "${CODEMAN_DIR}"
 fi
 
+# 同步到 Trae（如果 Trae 已安装）
+if [ -d "${HOME}/.trae" ] || [ "$ACTIVE_HOST" = "trae" ]; then
+    bash "${CODEMAN_DIR}/adapters/trae/sync-rules.sh" "${PROJECT_DIR}"
+fi
+
 # ─────────────────────────────────────────
 # Step 12: 检查冲突
 # ─────────────────────────────────────────

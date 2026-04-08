@@ -207,6 +207,19 @@ security:
     - "secrets/**"
     - "credentials/**"
 
+# 第三方 API 参考文档
+# 声明项目依赖的第三方 API/SDK 及其官方文档 URL
+# 开发时 AI 会自动 fetch 文档确认最新用法，避免使用过时 API
+api_references:
+  # - name: "Stripe"
+  #   doc_url: "https://docs.stripe.com/api"
+  #   version: "2024-06-20"          # 可选，锁定 API 版本
+  #   notes: "支付模块使用"           # 可选，备注
+  # - name: "OpenAI"
+  #   doc_url: "https://platform.openai.com/docs/api-reference"
+  #   version: ""
+  #   notes: "AI 对话模块"
+
 # 外部工具配置
 tools:
   playwright_mcp: true    # 是否使用 Playwright MCP 进行 E2E 测试

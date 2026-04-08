@@ -19,13 +19,16 @@ CODEMAN_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CURSOR_INSTALL_DIR="${HOME}/.cursor/skills/.codeman"
 CLAUDE_INSTALL_DIR="${HOME}/.claude/skills/.codeman"
 OPENCODE_INSTALL_DIR="${HOME}/.claude/skills/.codeman"
+TRAE_INSTALL_DIR="${HOME}/.trae/skills/.codeman"
 CURSOR_RULES_DIR="${HOME}/.cursor/rules"
 CLAUDE_DIR="${HOME}/.claude"
 OPENCODE_CONFIG_DIR="${HOME}/.config/opencode"
+TRAE_RULES_DIR="${HOME}/.trae/rules"
 
 HAS_CURSOR=false
 HAS_CLAUDE=false
 HAS_OPENCODE=false
+HAS_TRAE=false
 
 # 检测 Cursor：存在 ~/.cursor/ 目录
 [ -d "${HOME}/.cursor" ] && HAS_CURSOR=true
@@ -40,6 +43,9 @@ if command -v opencode &>/dev/null 2>&1 || [ -d "${HOME}/.config/opencode" ]; th
     HAS_OPENCODE=true
 fi
 
+# 检测 Trae：存在 ~/.trae/ 目录
+[ -d "${HOME}/.trae" ] && HAS_TRAE=true
+
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}  CodeMan v0.3 安装${NC}"
@@ -50,6 +56,7 @@ echo "检测到的环境："
 [ "$HAS_CURSOR" = true ] && echo -e "  ${GREEN}✅ Cursor${NC}" || echo -e "  ⬜ Cursor（未检测到 ~/.cursor/）"
 [ "$HAS_CLAUDE" = true ] && echo -e "  ${GREEN}✅ Claude Code${NC}" || echo -e "  ⬜ Claude Code（未检测到 ~/.claude/ 或 claude 命令）"
 [ "$HAS_OPENCODE" = true ] && echo -e "  ${GREEN}✅ OpenCode${NC}" || echo -e "  ⬜ OpenCode（未检测到 opencode 命令）"
+[ "$HAS_TRAE" = true ] && echo -e "  ${GREEN}✅ Trae${NC}" || echo -e "  ⬜ Trae（未检测到 ~/.trae/）"
 echo ""
 
 # 统计检测到的环境数量
@@ -57,6 +64,7 @@ ENV_COUNT=0
 [ "$HAS_CURSOR" = true ] && ENV_COUNT=$((ENV_COUNT + 1))
 [ "$HAS_CLAUDE" = true ] && ENV_COUNT=$((ENV_COUNT + 1))
 [ "$HAS_OPENCODE" = true ] && ENV_COUNT=$((ENV_COUNT + 1))
+[ "$HAS_TRAE" = true ] && ENV_COUNT=$((ENV_COUNT + 1))
 
 # 如果都未检测到，询问用户
 if [ "$ENV_COUNT" -eq 0 ]; then
@@ -65,13 +73,15 @@ if [ "$ENV_COUNT" -eq 0 ]; then
     echo "  1) Cursor"
     echo "  2) Claude Code"
     echo "  3) OpenCode"
-    echo "  4) 全部安装"
-    read -p "请输入选项 [1/2/3/4]: " ENV_CHOICE
+    echo "  4) Trae"
+    echo "  5) 全部安装"
+    read -p "请输入选项 [1/2/3/4/5]: " ENV_CHOICE
     case "$ENV_CHOICE" in
         1) HAS_CURSOR=true ;;
         2) HAS_CLAUDE=true ;;
         3) HAS_OPENCODE=true ;;
-        4) HAS_CURSOR=true; HAS_CLAUDE=true; HAS_OPENCODE=true ;;
+        4) HAS_TRAE=true ;;
+        5) HAS_CURSOR=true; HAS_CLAUDE=true; HAS_OPENCODE=true; HAS_TRAE=true ;;
         *) echo "无效选项，退出。"; exit 1 ;;
     esac
 fi
@@ -82,13 +92,15 @@ if [ "$ENV_COUNT" -gt 1 ]; then
     echo "  1) 仅 Cursor"
     echo "  2) 仅 Claude Code"
     echo "  3) 仅 OpenCode"
-    echo "  4) 全部安装（推荐）"
-    read -p "请输入选项 [1/2/3/4，默认 4]: " ENV_CHOICE
+    echo "  4) 仅 Trae"
+    echo "  5) 全部安装（推荐）"
+    read -p "请输入选项 [1/2/3/4/5，默认 5]: " ENV_CHOICE
     case "$ENV_CHOICE" in
-        1) HAS_CLAUDE=false; HAS_OPENCODE=false ;;
-        2) HAS_CURSOR=false; HAS_OPENCODE=false ;;
-        3) HAS_CURSOR=false; HAS_CLAUDE=false ;;
-        4|"") ;;
+        1) HAS_CLAUDE=false; HAS_OPENCODE=false; HAS_TRAE=false ;;
+        2) HAS_CURSOR=false; HAS_OPENCODE=false; HAS_TRAE=false ;;
+        3) HAS_CURSOR=false; HAS_CLAUDE=false; HAS_TRAE=false ;;
+        4) HAS_CURSOR=false; HAS_CLAUDE=false; HAS_OPENCODE=false ;;
+        5|"") ;;
         *) echo "无效选项，退出。"; exit 1 ;;
     esac
 fi
@@ -99,6 +111,7 @@ fi
 NEED_CONFIRM=false
 [ "$HAS_CURSOR" = true ] && [ -d "$CURSOR_INSTALL_DIR" ] && NEED_CONFIRM=true
 [ "$HAS_CLAUDE" = true ] && [ -d "$CLAUDE_INSTALL_DIR" ] && NEED_CONFIRM=true
+[ "$HAS_TRAE" = true ] && [ -d "$TRAE_INSTALL_DIR" ] && NEED_CONFIRM=true
 
 if [ "$NEED_CONFIRM" = true ]; then
     echo -e "${YELLOW}检测到已有安装，是否重新安装（覆盖）？[y/N]: ${NC}"
@@ -358,6 +371,77 @@ print('  已更新 AGENTS.md 中的 CodeMan 片段')
 fi
 
 # ─────────────────────────────────────────
+# 安装到 Trae
+# ─────────────────────────────────────────
+if [ "$HAS_TRAE" = true ]; then
+    echo -e "${GREEN}[Trae] Step 1: 安装框架到 ${TRAE_INSTALL_DIR}...${NC}"
+    mkdir -p "${TRAE_INSTALL_DIR}"
+    rsync -a --exclude='.git' --exclude='*.bak' "${CODEMAN_SRC}/" "${TRAE_INSTALL_DIR}/"
+    echo "  已安装到：${TRAE_INSTALL_DIR}"
+
+    # Trae：skill 位于 ~/.trae/skills/<name>/，自动发现
+    echo -e "${GREEN}[Trae] Step 1b: 链接 ~/.trae/skills/codeman-*...${NC}"
+    bash "${CODEMAN_SRC}/adapters/trae/link-skills.sh" "${TRAE_INSTALL_DIR}"
+
+    echo -e "${GREEN}[Trae] Step 2: 生成全局 bootstrap rule...${NC}"
+    mkdir -p "${TRAE_RULES_DIR}"
+    TRAE_BOOTSTRAP="${TRAE_RULES_DIR}/codeman-bootstrap.md"
+
+    cat > "${TRAE_BOOTSTRAP}" << 'BOOTSTRAP_EOF'
+---
+description: "CodeMan 工作流框架。当用户提到 CodeMan、开始开发、初始化、新需求、继续、修复、状态、概览等关键词时自动加载。"
+alwaysApply: true
+---
+
+# CodeMan 已安装
+
+你已安装 CodeMan 全流程开发工作流框架。
+
+## 核心规则
+
+当用户说以下任意命令时，你必须立即读取并执行 orchestrator Skill：
+
+```
+Read ~/.trae/skills/.codeman/skills/orchestrator/SKILL.md
+```
+
+**触发命令列表：**
+- `CodeMan 初始化` — 在当前项目初始化 CodeMan（新项目或旧项目接入）
+- `CodeMan 开始开发` — 启动完整开发流程
+- `CodeMan 新需求：[描述]` — 版本迭代
+- `CodeMan 继续` — 断点续做
+- `CodeMan 修复：[描述]` — 轻量修复
+- `CodeMan 状态` — 查看当前进度
+- `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
+
+## Skills 路径
+
+所有 Skills 位于 `~/.trae/skills/.codeman/skills/`：
+
+| Skill | 路径 |
+|-------|------|
+| orchestrator（入口） | `~/.trae/skills/.codeman/skills/orchestrator/SKILL.md` |
+| requirements | `~/.trae/skills/.codeman/skills/requirements/SKILL.md` |
+| design | `~/.trae/skills/.codeman/skills/design/SKILL.md` |
+| development | `~/.trae/skills/.codeman/skills/development/SKILL.md` |
+| testing | `~/.trae/skills/.codeman/skills/testing/SKILL.md` |
+| review | `~/.trae/skills/.codeman/skills/review/SKILL.md` |
+| fix | `~/.trae/skills/.codeman/skills/fix/SKILL.md` |
+| deploy | `~/.trae/skills/.codeman/skills/deploy/SKILL.md` |
+| evolve | `~/.trae/skills/.codeman/skills/evolve/SKILL.md` |
+
+## 重要说明
+
+- orchestrator 是唯一入口，所有场景都从它开始
+- 不要直接调用其他 Skill，由 orchestrator 按流程调度
+- 项目文档存放在项目的 `.codeman/docs/` 目录，跟着项目走
+BOOTSTRAP_EOF
+
+    echo "  已生成：${TRAE_BOOTSTRAP}"
+    echo ""
+fi
+
+# ─────────────────────────────────────────
 # 验证安装
 # ─────────────────────────────────────────
 echo -e "${GREEN}验证安装...${NC}"
@@ -437,6 +521,32 @@ if [ "$HAS_OPENCODE" = true ]; then
     fi
 fi
 
+if [ "$HAS_TRAE" = true ]; then
+    echo "  [Trae]"
+    for skill in "${SKILLS[@]}"; do
+        skill_path="${TRAE_INSTALL_DIR}/skills/${skill}/SKILL.md"
+        if [ -f "$skill_path" ]; then
+            echo -e "    ${GREEN}✅ ${skill}${NC}"
+        else
+            echo -e "    ${RED}❌ ${skill}（文件缺失）${NC}"
+            ALL_OK=false
+        fi
+    done
+    if [ -f "${HOME}/.trae/skills/codeman-orchestrator/SKILL.md" ]; then
+        echo -e "    ${GREEN}✅ ~/.trae/skills/codeman-*（skills 链接）${NC}"
+    else
+        echo -e "    ${RED}❌ ~/.trae/skills/codeman-*（skills 链接缺失）${NC}"
+        ALL_OK=false
+    fi
+    TRAE_BOOTSTRAP="${TRAE_RULES_DIR}/codeman-bootstrap.md"
+    if [ -f "$TRAE_BOOTSTRAP" ]; then
+        echo -e "    ${GREEN}✅ codeman-bootstrap.md（alwaysApply）${NC}"
+    else
+        echo -e "    ${RED}❌ codeman-bootstrap.md（生成失败）${NC}"
+        ALL_OK=false
+    fi
+fi
+
 # ─────────────────────────────────────────
 # 完成
 # ─────────────────────────────────────────
@@ -465,6 +575,12 @@ if [ "$ALL_OK" = true ]; then
     if [ "$HAS_OPENCODE" = true ]; then
         echo -e "${YELLOW}[OpenCode] 下一步：${NC}"
         echo "  1. 打开任意项目目录，在 OpenCode 中说："
+        echo "     CodeMan 初始化"
+        echo ""
+    fi
+    if [ "$HAS_TRAE" = true ]; then
+        echo -e "${YELLOW}[Trae] 下一步：${NC}"
+        echo "  1. 打开任意项目，在 Trae 的 AI 对话中说："
         echo "     CodeMan 初始化"
         echo ""
     fi
