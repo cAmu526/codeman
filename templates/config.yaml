@@ -176,10 +176,17 @@ token_limits:
 
 # 工作流配置
 workflow:
-  auto_git_commit: true        # 每个模块完成后自动 Git commit
   require_review_before_code: true  # 技术方案必须经过 Review 才能编码
   require_review_after_code: true   # 编码完成后必须经过 Review 才能测试
   max_fix_rounds: 3            # 修复闭环最大轮次
+
+# Git 分支策略
+git:
+  branch_strategy: true          # 开启分支策略（开发在 feature 分支，测试通过后 squash merge 回主分支）
+  branch_prefix: "feat/"         # 功能分支前缀（Bug 修复自动用 fix/）
+  merge_method: "squash"         # 合并方式：squash（推荐，历史最干净）| merge | rebase
+  auto_checkpoint: true          # 每个模块完成后在 feature 分支上自动 commit（安全存档）
+  delete_branch_after_merge: true  # 合并后自动删除 feature 分支
 
 # 规范配置
 rules:

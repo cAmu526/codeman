@@ -401,6 +401,42 @@ await page.screenshot({ path: 'tests/screenshots/smoke-{用例名}.png' });
 ## 完成后
 
 **全部通过：**
+
+首先执行 **Git 合并**（如 config.yaml 的 `git.branch_strategy` 为 true）：
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+测试通过 — Git 合并
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+当前分支：{feature 分支名}
+分支上的 commit（{N} 个）：
+  1. wip(auth): 实现认证模块
+  2. wip(order): 实现订单模块
+  3. fix(auth): 修复测试发现的问题
+
+合并方式：squash merge → {主分支}
+合并后的 commit message：
+  feat: {迭代/功能整体描述}
+
+  - 实现 {功能点1}
+  - 实现 {功能点2}
+  - 修复 {Bug1}
+  
+  Refs: F{ID1}, F{ID2}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+确认合并？（或修改 commit message / 选择其他合并方式）
+```
+
+用户确认后执行：
+```bash
+git checkout {主分支}
+git merge --squash {feature 分支}
+git commit -m "{合并 commit message}"
+git branch -d {feature 分支}    # 如 config.yaml 的 git.delete_branch_after_merge 为 true
+```
+
+然后输出测试报告：
 ```
 测试验证完成！
 阶段一：测试用例 {N} 个 + 自动化脚本全部生成
@@ -417,6 +453,7 @@ await page.screenshot({ path: 'tests/screenshots/smoke-{用例名}.png' });
 PRD 验收标准覆盖率：100%
 测试自动化率：{%}（[待人工] {N} 个，占比 {%}）
 虚假通过检查：0 个降级
+Git：已 squash merge 到 {主分支}（{N} 个 checkpoint → 1 个 commit）
 
 下一步：部署清单生成
 是否立即开始？

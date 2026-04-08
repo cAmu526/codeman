@@ -261,6 +261,11 @@ S0: 解析 + 分类 + 排序 → 用户确认迭代计划
 
 ### S1: 批量 Bug 修复
 
+创建 Bug 修复分支（如 `git.branch_strategy` 开启）：
+```bash
+git checkout -b fix/iteration-{迭代标识}
+```
+
 逐个执行快速通道（场景四），但**共享一轮回归测试**：
 
 ```
@@ -269,21 +274,27 @@ S0: 解析 + 分类 + 排序 → 用户确认迭代计划
   2. 制定修复方案 → 用户确认
   3. 修复 + 单元测试
   4. 验证修复结果
-  5. Git commit
+  5. Git checkpoint（在 fix 分支上）
 
 所有 Bug 修完后：
   → 统一回归测试（Smoke 级别，覆盖修复涉及的功能）
   → 缺陷回溯学习（批量执行，涉及隐性知识的写入领域规则）
+  → 测试通过后 squash merge 回主分支
 ```
 
 ### S2-S4: 合并执行新功能 + 优化
+
+创建功能分支（如 `git.branch_strategy` 开启）：
+```bash
+git checkout -b feat/iteration-{迭代标识}
+```
 
 将所有新功能和需要走完整流程的优化**合并为一批**，统一执行：
 
 ```
 S2: 需求分析 Skill — 所有新功能一起分析，生成各自的 feat-*.md
 S3: 技术方案 Skill — 统一做模块拆分和设计，共享架构决策
-S4: 开发实现 Skill — 按模块依赖顺序逐模块编码
+S4: 开发实现 Skill — 按模块依赖顺序逐模块编码（每个模块 checkpoint）
 ```
 
 > 合并执行的好处：共享一轮需求确认和设计确认，避免每个功能单独走一遍。
@@ -296,6 +307,7 @@ S4: 开发实现 Skill — 按模块依赖顺序逐模块编码
 1. Bug 修复回归（确认之前修的 Bug 没被新功能引入回退）
 2. 新功能测试（完整 L1-L5）
 3. 全量回归（Smoke 级别，覆盖核心路径）
+4. 测试通过后 squash merge feat 分支回主分支
 ```
 
 ### 迭代进度追踪
@@ -811,6 +823,10 @@ CodeMan 进度
 | `git status` | ✅ 允许 | 只读操作 |
 | `git diff` | ✅ 允许 | 只读操作 |
 | `git log` | ✅ 允许 | 只读操作 |
+| `git checkout -b {branch}` | ✅ 允许 | 创建 feature 分支（仅在分支策略开启时） |
+| `git checkout {branch}` | ✅ 允许 | 切换分支（仅在分支策略开启时） |
+| `git merge --squash {branch}` | ✅ 允许 | 测试通过后 squash merge（仅在分支策略开启时） |
+| `git branch -d {branch}` | ✅ 允许 | 删除已合并的 feature 分支 |
 | `git add` | ✅ 允许 | 暂存文件 |
 | `git commit -m "..."` | ✅ 允许 | 必须写明 commit message，遵循 Conventional Commits |
 | `git push` | ❌ **绝对禁止** | 推送操作必须由用户手动执行 |
