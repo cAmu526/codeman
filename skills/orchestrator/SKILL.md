@@ -157,15 +157,18 @@ CodeMan 场景识别
 **场景一（全新项目）：**
 ```
 S0: 初始化 → S1: 需求分析 Skill → S2: 技术方案 Skill
-→ S3: 开发实现 Skill → S4: 测试验证 Skill
+→ S3: 创建 feat/ 分支 → 开发实现 Skill（checkpoint commit）
+→ S4: 测试验证 Skill → 通过后 squash merge 回主分支
 → S5: 修复闭环 Skill（如有失败）→ S6: 部署清单 Skill
 ```
 
-**场景二（版本迭代）：**
+**场景二（版本迭代 / 新需求）：**
 ```
 S1: 变更范围识别 → S2: 增量需求分析 Skill
-→ S3: 增量技术方案 Skill → S4: 增量开发实现 Skill
-→ S5: 增量测试验证 Skill → S6: 部署清单 Skill
+→ S3: 增量技术方案 Skill
+→ S4: 创建 feat/ 分支 → 增量开发实现 Skill（checkpoint commit）
+→ S5: 增量测试验证 Skill → 通过后 squash merge 回主分支
+→ S6: 部署清单 Skill
 ```
 
 **场景三（旧项目接入）：**
@@ -178,7 +181,7 @@ S0: 项目扫描与理解 → S1: 生成架构文档
 
 **场景四（轻量快速通道）：**
 ```
-直接执行快速通道（见下方）
+创建 fix/ 分支 → 修复 → 验证 → squash merge 回主分支
 ```
 
 **场景五（批量迭代）：**
@@ -197,15 +200,17 @@ S0: 解析 + 分类 + 排序 → 用户确认迭代计划
 ## 场景四：快速通道执行
 
 ```
-1. 读取 STATUS.md + DIRECTIVES.md        (~700 tokens)
+0. 创建 fix/ 分支（如 git.branch_strategy 开启）  (~0 tokens)
+1. 读取 STATUS.md + DIRECTIVES.md + DOMAIN-RULES.md  (~700 tokens)
 2. 定位问题代码（精确引用相关文件）        (~2K tokens)
 3. 制定修复方案（简要说明）               (~1K tokens)
 4. 【人工确认】方案确认后执行
 5. 执行修复                              (~3K tokens)
 6. 单元测试 + 快速回归                   (~2K tokens)
 7. 轻量 Review（自检）                   (~1K tokens)
-8. Git commit
-9. 【后置异步】增量同步文档              (~2K tokens)
+8. Git checkpoint（在 fix 分支上）
+9. 验证通过 → squash merge 回主分支 → 删除 fix 分支
+10.【后置异步】增量同步文档              (~2K tokens)
 
 总 Token: ~12K（vs 完整流程 ~150K+）
 ```
