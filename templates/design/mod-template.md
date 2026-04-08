@@ -125,6 +125,15 @@ function {{functionName}}({{params}}): {{returnType}};
 
 ---
 
+## 领域规则
+
+> 本模块特有的业务隐性知识（代码和测试无法表达的约束）
+> 跨模块的规则放 DOMAIN-RULES.md，此处只放本模块范围内的
+
+- {{规则描述，如：订单状态只能单向流转 pending → paid → shipped → completed}}
+
+---
+
 ## 变更历史
 
 | 日期 | 变更内容 | 原因 |

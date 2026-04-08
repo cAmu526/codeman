@@ -536,6 +536,9 @@ rm -f "${PROJECT_DIR}/.codeman/docs/STATUS.md.bak"
 # DIRECTIVES.md
 cp "${CODEMAN_DIR}/templates/DIRECTIVES.md" "${PROJECT_DIR}/.codeman/docs/DIRECTIVES.md"
 
+# DOMAIN-RULES.md
+cp "${CODEMAN_DIR}/templates/DOMAIN-RULES.md" "${PROJECT_DIR}/.codeman/docs/DOMAIN-RULES.md"
+
 # INDEX 文件
 cp "${CODEMAN_DIR}/templates/prd/INDEX.md" "${PROJECT_DIR}/.codeman/docs/prd/INDEX.md"
 cp "${CODEMAN_DIR}/templates/design/INDEX.md" "${PROJECT_DIR}/.codeman/docs/design/INDEX.md"

@@ -380,6 +380,24 @@ Token 估算：~{X} tokens（上限 500）
 - 如用户修改，更新 DIRECTIVES.md 中的精粹卡后重新展示
 - 如用户确认，精粹卡锁定，进入下一步
 
+### Step 8.7: 提取领域规则
+
+从已确认的 PRD 碎片文件中识别并提取领域规则：
+
+1. **扫描所有 `feat-*.md`**，识别以下类型的隐性知识：
+   - 业务术语（可能被不同模块理解不同的术语）→ 写入 DOMAIN-RULES.md「术语定义」
+   - 跨功能业务约束（如"VIP 等级只升不降"）→ 写入 DOMAIN-RULES.md「跨模块不变量」
+   - 实体间不可违反的关系（如"订单必须关联用户"）→ 写入 DOMAIN-RULES.md「实体约束」
+   - 修改某概念会牵连多个功能的关系 → 写入 DOMAIN-RULES.md「跨功能影响」
+
+2. **与已有领域规则对照**（如 DOMAIN-RULES.md 已有内容）：
+   - 新需求是否与已有规则冲突？冲突则暂停报告用户
+   - 是否需要修改/废弃已有规则？
+
+3. **写入前检查容量**：如 DOMAIN-RULES.md 接近 1500 字上限，先提示用户清理可毕业的规则
+
+> 如果 PRD 中没有发现需要记录的领域规则，跳过此步。首次需求分析时 DOMAIN-RULES.md 可能只有模板占位符，属正常情况。
+
 ### Step 9: 更新 STATUS.md
 
 ```markdown
@@ -433,6 +451,11 @@ Token 估算：~{X} tokens（上限 500）
    - 新增约束追加到绝对约束列表
    - 保持 ≤500 tokens，必要时精简旧条目
 
+5. **领域规则冲突检查**：
+   - 读取 `.codeman/docs/DOMAIN-RULES.md`，检查新需求是否与已有领域规则冲突
+   - 冲突时暂停报告用户，确认后更新或废弃相关规则
+   - 新需求引入的新领域规则追加到 DOMAIN-RULES.md
+
 ---
 
 ## 不确定即停（遵守 orchestrator 全局硬规则）
@@ -471,6 +494,7 @@ Token 估算：~{X} tokens（上限 500）
 | PRD 碎片文件 | `.codeman/docs/prd/feat-*.md` | 每个功能点一个文件；须含用户故事、业务流程图、ASCII 界面原型、数据字典、验收标准（Given-When-Then） |
 | PRD 索引 | `.codeman/docs/prd/INDEX.md` | 功能点清单 |
 | DIRECTIVES 更新 | `.codeman/docs/DIRECTIVES.md` | 关键约束摘要 + 需求精粹卡 |
+| 领域规则更新 | `.codeman/docs/DOMAIN-RULES.md` | 从 PRD 中提取的业务术语、跨模块不变量、实体约束（如有） |
 | 完整性自检报告 | 对话中输出 | 每个功能点的完整性评分和缺失项 |
 | STATUS 更新 | `.codeman/docs/STATUS.md` | 阶段推进到 design |
 | 项目概览更新 | `.codeman/docs/PROJECT-OVERVIEW.md` | 更新项目简介、功能地图、当前进度 |
