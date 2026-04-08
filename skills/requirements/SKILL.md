@@ -198,6 +198,8 @@ UI 设计资产收集
 
 **使用模板：** `{CODEMAN_HOME}/templates/prd/feat-template.md`
 
+**版本文档同步写入：** 如果 STATUS.md 中存在 `iteration_version` 字段，在写入每个 `feat-*.md` 的同时，将该功能点的完整 PRD 内容追加到 `.codeman/docs/iterations/{iteration_version}/PRD.md` 中。每个功能点之间用 `---` 分隔，文档开头维护功能点目录。
+
 **PRD 质量要求（行业标准）：**
 
 每个 PRD 碎片文件必须包含以下完整内容：
@@ -520,4 +522,7 @@ PRD 文档：.codeman/docs/prd/（{N} 个碎片文件）
 
 下一步：技术方案设计
 是否立即开始？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+**用户确认后，调度下一阶段：** Read `{CODEMAN_HOME}/skills/design/SKILL.md` 并按其指令执行。

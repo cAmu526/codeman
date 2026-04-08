@@ -135,13 +135,47 @@ CodeMan 场景识别
 即将执行：[工作流步骤概述]
 预估轮次：[X-Y 轮]
 预估 Token：[~XK]
+是否需要生成本次迭代的版本文档？（回复版本名如"v1.2.0"，不需要则留空）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 确认继续？（直接回复即可，或说"切换到[其他场景]"）
 ```
 
+**版本文档处理：**
+
+如果用户回复了版本名：
+1. 创建目录：`.codeman/docs/iterations/{版本名}/`
+2. 创建 `SUMMARY.md` 骨架（版本名、日期、场景类型）
+3. 创建空的 `PRD.md` 和 `DESIGN.md`（后续 Skill 写碎片文件时同步写入）
+4. 更新 `.codeman/docs/iterations/INDEX.md`（追加行）
+5. 在 STATUS.md 中写入 `iteration_version: {版本名}`，后续 Skill 据此判断是否同步写入版本文档
+
+如果用户未提供版本名，不创建版本文档目录，STATUS.md 中不写入 `iteration_version`。
+
 ### Step 5: 调度对应 Skill 链
 
 用户确认后，按以下顺序调度：
+
+**Skill 调度机制（跨 IDE 通用，必须遵守）：**
+
+调度任何 Skill 时，必须通过 **Read 文件** 的方式加载并执行，不依赖斜杠命令或其他 IDE 特有机制。
+
+具体操作：读取 `{CODEMAN_HOME}/skills/{skill-name}/SKILL.md`，然后按其指令执行。
+
+Skill 名称与路径映射表：
+
+| Skill 名称 | 目录名 | 路径 |
+|------------|--------|------|
+| 需求分析 Skill | requirements | `{CODEMAN_HOME}/skills/requirements/SKILL.md` |
+| 技术方案 Skill | design | `{CODEMAN_HOME}/skills/design/SKILL.md` |
+| 开发实现 Skill | development | `{CODEMAN_HOME}/skills/development/SKILL.md` |
+| 测试验证 Skill | testing | `{CODEMAN_HOME}/skills/testing/SKILL.md` |
+| Review Skill | review | `{CODEMAN_HOME}/skills/review/SKILL.md` |
+| 修复闭环 Skill | fix | `{CODEMAN_HOME}/skills/fix/SKILL.md` |
+| 部署清单 Skill | deploy | `{CODEMAN_HOME}/skills/deploy/SKILL.md` |
+| 自进化引擎 Skill | evolve | `{CODEMAN_HOME}/skills/evolve/SKILL.md` |
+
+> 示例：调度"需求分析 Skill"时，实际执行 `Read {CODEMAN_HOME}/skills/requirements/SKILL.md` 并按其内容执行。
+> CODEMAN_HOME 的值见本文件顶部「宿主环境说明」。
 
 **所有场景通用规则：**
 每次阶段转换（S{N} → S{N+1}）时，重新读取 DIRECTIVES.md，
@@ -979,7 +1013,7 @@ CodeMan 初始化完成
 
 6. 更新 STATUS.md：`phase: requirements`
 
-7. 调用需求分析 Skill
+7. 调度需求分析 Skill：Read `{CODEMAN_HOME}/skills/requirements/SKILL.md` 并按其指令执行
 
 ---
 

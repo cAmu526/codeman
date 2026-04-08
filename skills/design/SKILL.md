@@ -218,7 +218,7 @@ API 设计生成后，**独立输出**给用户逐接口确认：
 
 ### Step 4: 【自动 Review 门禁】
 
-技术方案和 API 设计确认后，**立即调用 Review Skill** 进行方案审查：
+技术方案和 API 设计确认后，**立即调度 Review Skill**（Read `{CODEMAN_HOME}/skills/review/SKILL.md` 并按其指令执行）进行方案审查：
 
 审查重点：
 - **PRD 一致性**：每个 PRD 功能点是否都有对应的技术实现
@@ -285,6 +285,8 @@ Review 结果：✅ 通过（{N} 个 Medium 问题已修复）
 ### Step 5: 生成技术方案碎片文件
 
 用户最终确认后，写入 `.codeman/docs/design/mod-{模块名}.md`（使用 Step 2 的内容）。
+
+**版本文档同步写入：** 如果 STATUS.md 中存在 `iteration_version` 字段，在写入每个 `mod-*.md` 的同时，将该模块的完整技术方案追加到 `.codeman/docs/iterations/{iteration_version}/DESIGN.md` 中。如有对应的 `api-*.md`，也一并追加。每个模块之间用 `---` 分隔，文档开头维护模块目录。
 
 ### Step 5.5: 提取模块级领域规则
 
@@ -520,4 +522,7 @@ Review 已通过，方案文档已生成到 .codeman/docs/design/ 和 .codeman/d
 
 下一步：开发实现
 是否立即开始？（可指定从哪个模块开始）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+**用户确认后，调度下一阶段：** Read `{CODEMAN_HOME}/skills/development/SKILL.md` 并按其指令执行。

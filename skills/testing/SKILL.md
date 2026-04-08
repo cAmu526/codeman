@@ -459,6 +459,24 @@ Git：已 squash merge 到 {主分支}（{N} 个 checkpoint → 1 个 commit）
 是否立即开始？
 ```
 
+**版本文档收尾（如有）：**
+
+如果 STATUS.md 中存在 `iteration_version` 字段，在输出测试报告后额外执行：
+
+1. 将 `tests/test-report-latest.md` 复制到 `.codeman/docs/iterations/{iteration_version}/TEST-REPORT.md`
+2. 完善 `SUMMARY.md`：补充测试结果（用例数、通过率）、影响范围（涉及模块、修改文件数）、Git 合并信息
+3. 更新 `iterations/INDEX.md` 的对应行，补充内容摘要
+4. 输出版本文档完成确认：
+   ```
+   版本文档已完善：.codeman/docs/iterations/{iteration_version}/
+     SUMMARY.md     — 迭代摘要（已补充测试结果）
+     PRD.md         — 需求文档（需求阶段已写入）
+     DESIGN.md      — 技术方案（设计阶段已写入）
+     TEST-REPORT.md — 测试报告（已复制）
+   ```
+
+**用户确认后，调度下一阶段：** Read `{CODEMAN_HOME}/skills/deploy/SKILL.md` 并按其指令执行。
+
 **有失败用例：**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -473,3 +491,5 @@ Git：已 squash merge 到 {主分支}（{N} 个 checkpoint → 1 个 commit）
 是否立即进入修复闭环？（直接回复即可，或说"先跳过"/"只修 {用例名}"）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+**用户确认修复后，调度修复闭环 Skill：** Read `{CODEMAN_HOME}/skills/fix/SKILL.md` 并按其指令执行。
