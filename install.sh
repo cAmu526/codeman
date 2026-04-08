@@ -165,6 +165,7 @@ Read ~/.cursor/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 状态` — 查看当前进度
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
+- `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 
 ## Skills 路径
 
@@ -325,6 +326,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 状态` — 查看当前进度
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
+- `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 
 ## Skills 路径
 
@@ -416,6 +418,7 @@ Read ~/.trae/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 状态` — 查看当前进度
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
+- `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 
 ## Skills 路径
 
