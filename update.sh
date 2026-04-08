@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CodeMan v0.3 框架升级脚本
+# CodeMan v0.9.1 框架升级脚本
 # 将源码目录的最新版本同步到安装目录，同时支持 Cursor 和 Claude Code
 # 用法：bash /path/to/codeman/update.sh
 #
@@ -28,7 +28,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}  CodeMan v0.3 框架升级${NC}"
+echo -e "${BLUE}  CodeMan v0.9.1 框架升级${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -91,7 +91,7 @@ alwaysApply: true
 
 # CodeMan 已安装
 
-你已安装 CodeMan v0.3 全流程开发工作流框架。
+你已安装 CodeMan v0.9.1 全流程开发工作流框架。
 
 ## 核心规则
 
@@ -101,7 +101,7 @@ alwaysApply: true
 Read ~/.cursor/skills/.codeman/skills/orchestrator/SKILL.md
 ```
 
-**触发命令列表：**
+**触发命令列表（只有以下命令，不要编造其他命令）：**
 - `CodeMan 初始化` — 在当前项目初始化 CodeMan（新项目或旧项目接入）
 - `CodeMan 开始开发` — 启动完整开发流程
 - `CodeMan 新需求：[描述]` — 版本迭代
@@ -109,6 +109,18 @@ Read ~/.cursor/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 修复：[描述]` — 轻量修复
 - `CodeMan 状态` — 查看当前进度
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
+- `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
+- `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+
+## 阶段衔接规则（重要）
+
+CodeMan 的工作流是分阶段执行的。**每个 Skill 完成后，必须按该 Skill 文件末尾"完成后"章节的指示操作**：
+
+1. 向用户展示完成摘要和下一步提示
+2. 用户确认后，通过 `Read {Skill路径}` 加载并执行下一个 Skill
+3. **严禁**在阶段完成后自行总结然后停下来等用户输入命令
+4. **严禁**编造不存在的命令（如"CodeMan 开始测试"、"CodeMan 进入编码"等）
+5. 如果不确定下一步是什么，说 `CodeMan 继续` 让 orchestrator 根据 STATUS.md 判断
 
 ## Skills 路径
 
@@ -131,6 +143,7 @@ Read ~/.cursor/skills/.codeman/skills/orchestrator/SKILL.md
 - orchestrator 是唯一入口，所有场景都从它开始
 - 不要直接调用其他 Skill，由 orchestrator 按流程调度
 - 项目文档存放在项目的 `.codeman/docs/` 目录，跟着项目走
+- 每个 Skill 执行过程中必须严格遵循其 SKILL.md 的所有步骤，包括更新 STATUS.md
 BOOTSTRAP_EOF
     echo "  ✅ [Cursor] codeman-bootstrap.mdc 已更新"
 fi
@@ -140,7 +153,7 @@ if [ "$HAS_CLAUDE" = true ]; then
     CODEMAN_BLOCK='<!-- CODEMAN START -->
 # CodeMan 已安装
 
-你已安装 CodeMan v0.3 全流程开发工作流框架。
+你已安装 CodeMan v0.9.1 全流程开发工作流框架。
 
 ## 核心规则
 
@@ -150,7 +163,7 @@ if [ "$HAS_CLAUDE" = true ]; then
 Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 ```
 
-**触发命令列表：**
+**触发命令列表（只有以下命令，不要编造其他命令）：**
 - `CodeMan 初始化` — 在当前项目初始化 CodeMan（新项目或旧项目接入）
 - `CodeMan 开始开发` — 启动完整开发流程
 - `CodeMan 新需求：[描述]` — 版本迭代
@@ -158,6 +171,8 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 修复：[描述]` — 轻量修复
 - `CodeMan 状态` — 查看当前进度
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
+- `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
+- `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 
 ## Skills 路径
 
@@ -180,6 +195,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - orchestrator 是唯一入口，所有场景都从它开始
 - 不要直接调用其他 Skill，由 orchestrator 按流程调度
 - 项目文档存放在项目的 `.codeman/docs/` 目录，跟着项目走
+- 每个 Skill 执行过程中必须严格遵循其 SKILL.md 的所有步骤，包括更新 STATUS.md
 <!-- CODEMAN END -->'
 
     if [ -f "$CLAUDE_MD" ] && grep -q "<!-- CODEMAN START -->" "$CLAUDE_MD" 2>/dev/null; then
