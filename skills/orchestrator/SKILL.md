@@ -1,6 +1,6 @@
 ---
 name: codeman-orchestrator
-description: "CodeMan 主编排入口。当用户提到以下关键词时触发：CodeMan、初始化、开始开发、继续开发、继续、修复 Bug、新需求、版本迭代、迭代、接入现有项目、CodeMan 状态、查看进度、项目概览、CodeMan 概览、CodeMan 同步、同步文档。负责读取项目状态、识别场景、调度对应工作流。"
+description: "CodeMan 主编排入口。当用户提到以下关键词时触发：CodeMan、初始化、开始开发、继续开发、继续、修复 Bug、新需求、版本迭代、迭代、接入现有项目、CodeMan 状态、查看进度、项目概览、CodeMan 概览、CodeMan 同步、同步文档、添加规则、创建规范。负责读取项目状态、识别场景、调度对应工作流。"
 ---
 
 # CodeMan Orchestrator — 主编排入口
@@ -98,6 +98,11 @@ git log --since="{last_updated}" --not --author="{当前 git 用户}" --oneline
 - 触发条件：用户说"同步"、"同步文档"、"CodeMan 同步"
 - 执行：见下方「增量文档补全」流程
 - 适用场景：同事直接给了代码文件、非 git 管理的代码变更、手动触发同步
+
+**特殊：添加项目规则**
+- 触发条件：用户说"添加规则"、"创建规范"、"写一条规则"、"CodeMan 添加规则：[描述]"
+- 执行：调度自进化 Skill（Read `{CODEMAN_HOME}/skills/evolve/SKILL.md`），以「用户手动创建」模式执行
+- 流程：根据用户描述生成 `.codeman/rules/proj-*.mdc` 文件 → 同步到 IDE 规则目录 → 更新 INDEX.md
 
 **特殊：查看状态**
 - 触发条件：用户说"状态"、"进度"、"查看"

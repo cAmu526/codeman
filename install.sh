@@ -166,6 +166,7 @@ Read ~/.cursor/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+- `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
 
 ## 阶段衔接规则（重要）
 
@@ -246,6 +247,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - \`CodeMan 概览\` — 生成/更新项目概览文档（面向新成员）
 - \`CodeMan 同步\` — 同步文档（同事改了代码后补全缺失文档）
 - \`CodeMan 迭代：[内容]\` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+- \`CodeMan 添加规则：[描述]\` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
 
 ## Skills 路径
 
@@ -341,6 +343,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+- `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
 
 ## 阶段衔接规则（重要）
 
@@ -444,6 +447,7 @@ Read ~/.trae/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+- `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
 
 ## 阶段衔接规则（重要）
 
