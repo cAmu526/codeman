@@ -27,7 +27,7 @@ fi
 CODEMAN_BLOCK='<!-- CODEMAN START -->
 # CodeMan 工作流框架
 
-'"${PROJECT_NAME}"' 已接入 CodeMan v0.3 全流程开发工作流框架。
+'"${PROJECT_NAME}"' 已接入 CodeMan v1.0 全流程开发工作流框架。
 
 ## 核心规则
 

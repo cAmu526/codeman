@@ -48,7 +48,7 @@ fi
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}  CodeMan v0.9.1 安装${NC}"
+echo -e "${BLUE}  CodeMan v1.0 安装${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -146,7 +146,7 @@ alwaysApply: true
 
 # CodeMan 已安装
 
-你已安装 CodeMan v0.9.1 全流程开发工作流框架。
+你已安装 CodeMan v1.0 全流程开发工作流框架。
 
 ## 核心规则
 
@@ -226,7 +226,7 @@ if [ "$HAS_CLAUDE" = true ]; then
     CODEMAN_BLOCK="<!-- CODEMAN START -->
 # CodeMan 已安装
 
-你已安装 CodeMan v0.9.1 全流程开发工作流框架。
+你已安装 CodeMan v1.0 全流程开发工作流框架。
 
 ## 核心规则
 
@@ -321,7 +321,7 @@ if [ "$HAS_OPENCODE" = true ]; then
     CODEMAN_BLOCK_OPENCODE='<!-- CODEMAN START -->
 # CodeMan 已安装
 
-你已安装 CodeMan v0.9.1 全流程开发工作流框架。
+你已安装 CodeMan v1.0 全流程开发工作流框架。
 
 ## 核心规则
 
@@ -424,7 +424,7 @@ alwaysApply: true
 
 # CodeMan 已安装
 
-你已安装 CodeMan v0.9.1 全流程开发工作流框架。
+你已安装 CodeMan v1.0 全流程开发工作流框架。
 
 ## 核心规则
 

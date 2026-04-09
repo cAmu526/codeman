@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CodeMan v0.3 项目反初始化脚本
+# CodeMan v1.0 项目反初始化脚本
 # 清理当前项目中的 CodeMan 配置（Rules、Skills、模板），保留 .codeman/docs/ 文档资产
 # 同时清理 Cursor 和 Claude Code 两个环境的项目级配置
 # 用法：在项目根目录执行 bash /path/to/codeman/uninit.sh
@@ -16,7 +16,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}  CodeMan v0.3 项目反初始化${NC}"
+echo -e "${BLUE}  CodeMan v1.0 项目反初始化${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 

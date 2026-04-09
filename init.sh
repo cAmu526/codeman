@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CodeMan v0.3 初始化脚本
+# CodeMan v1.0 初始化脚本
 # 由 AI 通过 Shell 工具调用，或手动执行：
 #   bash ~/.cursor/skills/.codeman/init.sh   （Cursor 环境）
 #   bash ~/.claude/skills/.codeman/init.sh   （Claude Code 环境）
@@ -50,7 +50,7 @@ PROJECT_DIR="$(pwd)"
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}  CodeMan v0.3 初始化${NC}"
+echo -e "${BLUE}  CodeMan v1.0 初始化${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "目标项目：${PROJECT_DIR}"

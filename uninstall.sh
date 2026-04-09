@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CodeMan v0.3 全局卸载脚本
+# CodeMan v1.0 全局卸载脚本
 # 同时清理 Cursor 和 Claude Code 两个环境的安装
 # 用法：bash /path/to/codeman/uninstall.sh
 
@@ -18,7 +18,7 @@ CLAUDE_MD="${HOME}/.claude/CLAUDE.md"
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}  CodeMan v0.3 全局卸载${NC}"
+echo -e "${BLUE}  CodeMan v1.0 全局卸载${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 

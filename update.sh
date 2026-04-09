@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CodeMan v0.9.1 框架升级脚本
+# CodeMan v1.0 框架升级脚本
 # 将源码目录的最新版本同步到安装目录，同时支持 Cursor 和 Claude Code
 # 用法：bash /path/to/codeman/update.sh
 #
@@ -28,7 +28,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}  CodeMan v0.9.1 框架升级${NC}"
+echo -e "${BLUE}  CodeMan v1.0 框架升级${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -91,7 +91,7 @@ alwaysApply: true
 
 # CodeMan 已安装
 
-你已安装 CodeMan v0.9.1 全流程开发工作流框架。
+你已安装 CodeMan v1.0 全流程开发工作流框架。
 
 ## 核心规则
 
@@ -153,7 +153,7 @@ if [ "$HAS_CLAUDE" = true ]; then
     CODEMAN_BLOCK='<!-- CODEMAN START -->
 # CodeMan 已安装
 
-你已安装 CodeMan v0.9.1 全流程开发工作流框架。
+你已安装 CodeMan v1.0 全流程开发工作流框架。
 
 ## 核心规则
 
