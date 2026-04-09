@@ -459,21 +459,48 @@ Git：已 squash merge 到 {主分支}（{N} 个 checkpoint → 1 个 commit）
 是否立即开始？
 ```
 
-**版本文档收尾（如有）：**
+**测试通过后：同步总文档 + 版本文档**
 
-如果 STATUS.md 中存在 `iteration_version` 字段，在输出测试报告后额外执行：
+测试全部通过且 squash merge 完成后，碎片文档已稳定，此时统一同步：
 
-1. 将 `tests/test-report-latest.md` 复制到 `.codeman/docs/iterations/{iteration_version}/TEST-REPORT.md`
-2. 完善 `SUMMARY.md`：补充测试结果（用例数、通过率）、影响范围（涉及模块、修改文件数）、Git 合并信息
-3. 更新 `iterations/INDEX.md` 的对应行，补充内容摘要
-4. 输出版本文档完成确认：
-   ```
-   版本文档已完善：.codeman/docs/iterations/{iteration_version}/
-     SUMMARY.md     — 迭代摘要（已补充测试结果）
-     PRD.md         — 需求文档（需求阶段已写入）
-     DESIGN.md      — 技术方案（设计阶段已写入）
-     TEST-REPORT.md — 测试报告（已复制）
-   ```
+**① 同步 PRD-FULL.md（总需求文档）：**
+- 读取本次迭代涉及的所有 `prd/feat-*.md`（从 STATUS.md 的迭代记录识别）
+- 新功能点 → 追加到 `PRD-FULL.md` 对应分类下
+- 修改的功能点 → 替换 `PRD-FULL.md` 中对应功能点的内容
+- 文档开头维护功能点目录（按分类：核心/增强/可选）
+- 每个功能点之间用 `---` 分隔
+- 如果 `PRD-FULL.md` 不存在，创建并写入文件头：`# 产品需求文档（完整版）\n\n> 本文件由 CodeMan 自动维护，包含所有功能点的累积全貌。\n`
+
+**② 同步 DESIGN-FULL.md（总技术设计文档）：**
+- 读取本次迭代涉及的所有 `design/mod-*.md` 和 `api/api-*.md`
+- 新模块 → 追加到 `DESIGN-FULL.md` 对应章节下
+- 修改的模块 → 替换对应模块内容
+- 文档结构固定为四大章节：`## 架构概述`、`## 模块设计`、`## API 设计`、`## 数据库设计`
+- 数据库表结构从 mod-*.md 的数据模型部分或代码中的 migration/schema 提取，写入「数据库设计」章节（表名、字段、类型、索引、表关系）
+- 如果 `DESIGN-FULL.md` 不存在，创建并写入文件头和四大章节骨架
+
+**③ 版本文档收尾（如 STATUS.md 中存在 `iteration_version`）：**
+1. 读取本次迭代的所有 `feat-*.md`，合并写入 `iterations/{iteration_version}/PRD.md`
+2. 读取本次迭代的所有 `mod-*.md` + `api-*.md`，合并写入 `iterations/{iteration_version}/DESIGN.md`
+3. 将 `tests/test-report-latest.md` 复制到 `iterations/{iteration_version}/TEST-REPORT.md`
+4. 完善 `SUMMARY.md`：补充测试结果、影响范围、Git 合并信息
+5. 更新 `iterations/INDEX.md`
+
+**④ 输出同步确认：**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+文档同步完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+总文档已更新：
+  PRD-FULL.md      — 产品需求全貌（{N} 个功能点）
+  DESIGN-FULL.md   — 技术设计全貌（{N} 个模块 / {N} 个接口 / {N} 张表）
+{如有版本文档}
+版本文档已生成：
+  iterations/{版本名}/  — PRD + 设计方案 + 测试报告 + 摘要
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+下一步：部署清单生成
+是否立即开始？
+```
 
 **用户确认后，调度下一阶段：** Read `{CODEMAN_HOME}/skills/deploy/SKILL.md` 并按其指令执行。
 

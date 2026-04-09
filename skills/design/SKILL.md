@@ -286,7 +286,7 @@ Review 结果：✅ 通过（{N} 个 Medium 问题已修复）
 
 用户最终确认后，写入 `.codeman/docs/design/mod-{模块名}.md`（使用 Step 2 的内容）。
 
-**版本文档同步写入：** 如果 STATUS.md 中存在 `iteration_version` 字段，在写入每个 `mod-*.md` 的同时，将该模块的完整技术方案追加到 `.codeman/docs/iterations/{iteration_version}/DESIGN.md` 中。如有对应的 `api-*.md`，也一并追加。每个模块之间用 `---` 分隔，文档开头维护模块目录。
+**注意：** DESIGN-FULL.md 和版本文档的同步不在此阶段执行。碎片文档在开发和测试过程中可能反复修改，待测试通过后由 testing Skill 统一同步到总文档和版本文档。
 
 ### Step 5.5: 提取模块级领域规则
 
