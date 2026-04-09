@@ -191,18 +191,20 @@ Skill 名称与路径映射表：
 **场景一（全新项目）：**
 ```
 S0: 初始化 → S1: 需求分析 Skill → S2: 技术方案 Skill
-→ S3: 创建 feat/ 分支 → 开发实现 Skill（checkpoint commit）
-→ S4: 测试验证 Skill → 通过后 squash merge 回主分支
-→ S5: 修复闭环 Skill（如有失败）→ S6: 部署清单 Skill
+→ S3: 测试验证 Skill 阶段一（生成测试用例，编码前锁定验收基准）
+→ S4: 创建 feat/ 分支 → 开发实现 Skill（checkpoint commit）
+→ S5: 测试验证 Skill 阶段二（编写脚本 + 执行）→ 通过后 squash merge 回主分支
+→ S6: 修复闭环 Skill（如有失败）→ S7: 部署清单 Skill
 ```
 
 **场景二（版本迭代 / 新需求）：**
 ```
 S1: 变更范围识别 → S2: 增量需求分析 Skill
 → S3: 增量技术方案 Skill
-→ S4: 创建 feat/ 分支 → 增量开发实现 Skill（checkpoint commit）
-→ S5: 增量测试验证 Skill → 通过后 squash merge 回主分支
-→ S6: 部署清单 Skill
+→ S4: 测试验证 Skill 阶段一（生成测试用例，编码前锁定验收基准）
+→ S5: 创建 feat/ 分支 → 增量开发实现 Skill（checkpoint commit）
+→ S6: 测试验证 Skill 阶段二（编写脚本 + 执行）→ 通过后 squash merge 回主分支
+→ S7: 部署清单 Skill
 ```
 
 **场景三（旧项目接入）：**
@@ -224,9 +226,10 @@ S0: 解析 + 分类 + 排序 → 用户确认迭代计划
 → S1: 批量 Bug 修复（快速通道，逐个修复）
 → S2: 合并需求分析（新功能 + 优化统一走需求 Skill）
 → S3: 合并技术方案 Skill
-→ S4: 逐模块开发实现 Skill
-→ S5: 统一测试验证 Skill（含 Bug 回归 + 新功能测试）
-→ S6: 部署清单 Skill
+→ S4: 测试验证 Skill 阶段一（生成测试用例，编码前锁定）
+→ S5: 逐模块开发实现 Skill
+→ S6: 统一测试验证 Skill 阶段二（编写脚本 + 执行，含 Bug 回归 + 新功能测试）
+→ S7: 部署清单 Skill
 ```
 
 ---
