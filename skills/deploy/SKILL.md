@@ -322,10 +322,14 @@ git checkout {tag/commit}
 
 部署清单确认后，扫描碎片文档，识别可归档的过时文件：
 
-**扫描规则：**
-- `prd/feat-*.md`：检查是否有同一功能的多个版本（如 `feat-leads.md` 和 `feat-leads-v2.md`），旧版本建议归档
-- `design/mod-*.md`：与实际代码对比（读代码目录结构），如果模块已被重写或删除，建议归档
-- `api/api-*.md`：与实际路由文件对比，如果接口已不存在，建议归档
+**扫描规则（满足任一即建议归档）：**
+
+| # | 条件 | 检测方式 | 示例 |
+|---|------|---------|------|
+| 1 | 同名碎片存在新版本 | 文件名匹配：`feat-X.md` 和 `feat-X-v2.md` 共存 | `feat-leads.md` → 归档（`feat-leads-v2.md` 已替代） |
+| 2 | 对应代码目录/文件已不存在 | Glob 搜索碎片中引用的入口文件路径 | `mod-old-auth.md` 引用 `src/modules/old-auth/` → 目录不存在 → 归档 |
+| 3 | 碎片被标记为 deprecated | 碎片文件内含 `status: deprecated` 或 `## 已废弃` | 手动标记的废弃功能 |
+| 4 | API 接口已不存在 | Grep 代码中路由定义，与 `api-*.md` 对比 | `api-export.md` 定义的 `/api/export` 在代码中找不到路由 |
 
 **输出归档建议（如有）：**
 ```
