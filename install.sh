@@ -52,7 +52,46 @@ echo -e "${BLUE}  CodeMan v1.0 安装${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-echo "检测到的环境："
+# ─────────────────────────────────────────
+# 基础环境检测（缺失则阻断）
+# ─────────────────────────────────────────
+echo -e "${GREEN}基础环境检测：${NC}"
+MISSING_DEPS=false
+
+if command -v git &>/dev/null; then
+    echo -e "  ${GREEN}✅ git（$(git --version | head -1)）${NC}"
+else
+    echo -e "  ${RED}❌ git — 未安装${NC}"
+    echo "     CodeMan 依赖 git 进行版本控制（分支、commit、diff）"
+    echo "     安装方式：brew install git（macOS）/ apt install git（Linux）"
+    MISSING_DEPS=true
+fi
+
+if command -v node &>/dev/null; then
+    echo -e "  ${GREEN}✅ Node.js（$(node --version)）${NC}"
+else
+    echo -e "  ${RED}❌ Node.js — 未安装${NC}"
+    echo "     CodeMan 的测试和编码阶段依赖 Node.js 运行环境"
+    echo "     安装方式：brew install node（macOS）/ 参考 https://nodejs.org/"
+    MISSING_DEPS=true
+fi
+
+if command -v npm &>/dev/null; then
+    echo -e "  ${GREEN}✅ npm（$(npm --version)）${NC}"
+else
+    if [ "$MISSING_DEPS" = false ]; then
+        # Node.js 装了但 npm 没有，不太常见
+        echo -e "  ${YELLOW}⚠️  npm — 未找到（通常随 Node.js 一起安装）${NC}"
+    fi
+fi
+echo ""
+
+if [ "$MISSING_DEPS" = true ]; then
+    echo -e "${RED}基础环境不满足，请先安装缺失的依赖后重新运行 install.sh${NC}"
+    exit 1
+fi
+
+echo "检测到的 AI IDE："
 [ "$HAS_CURSOR" = true ] && echo -e "  ${GREEN}✅ Cursor${NC}" || echo -e "  ⬜ Cursor（未检测到 ~/.cursor/）"
 [ "$HAS_CLAUDE" = true ] && echo -e "  ${GREEN}✅ Claude Code${NC}" || echo -e "  ⬜ Claude Code（未检测到 ~/.claude/ 或 claude 命令）"
 [ "$HAS_OPENCODE" = true ] && echo -e "  ${GREEN}✅ OpenCode${NC}" || echo -e "  ⬜ OpenCode（未检测到 opencode 命令）"

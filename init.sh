@@ -483,50 +483,113 @@ echo ""
 echo -e "${GREEN}Step 5: 测试配置${NC}"
 echo ""
 
-# 检测 Playwright
-echo -e "${CYAN}检测 E2E 测试工具...${NC}"
-HAS_PLAYWRIGHT=false
-
-# 检查项目级安装
-if [ -f "${PROJECT_DIR}/node_modules/.bin/playwright" ]; then
-    HAS_PLAYWRIGHT=true
-    echo -e "  ${GREEN}✅ Playwright 已安装（项目级）${NC}"
-# 检查全局安装
-elif command -v playwright &>/dev/null; then
-    HAS_PLAYWRIGHT=true
-    echo -e "  ${GREEN}✅ Playwright 已安装（全局）${NC}"
-else
-    echo -e "  ${YELLOW}⚠️  未检测到 Playwright${NC}"
-    echo ""
-    echo "  Playwright 是浏览器自动化测试工具，用于："
-    echo "    - L3 E2E 端到端测试（模拟用户操作：点击、填写、导航）"
-    echo "    - L4 UI 视觉测试（截图对比）"
-    echo "    - 兼容性测试（多浏览器 + 多设备）"
-    echo ""
-    read -p "  是否现在安装 Playwright？[Y/n]: " INSTALL_PW
-    if [[ ! "$INSTALL_PW" =~ ^[Nn]$ ]]; then
-        echo "  正在安装..."
-        npm install -D @playwright/test
-        npx playwright install
-        HAS_PLAYWRIGHT=true
-        echo -e "  ${GREEN}✅ Playwright 安装完成${NC}"
-    else
-        echo -e "  ${YELLOW}跳过。后续可手动安装：npm install -D @playwright/test && npx playwright install${NC}"
-    fi
-fi
+echo -e "${CYAN}测试工具检测：${NC}"
 echo ""
 
-read -p "是否启用 UI 视觉测试（Midscene.js）？[y/N]: " ENABLE_UI_TEST
-UI_VISUAL_TESTING="false"
-if [[ "$ENABLE_UI_TEST" =~ ^[Yy]$ ]]; then
-    UI_VISUAL_TESTING="true"
+# --- Playwright（L3 E2E / L4 视觉 / 兼容性）---
+HAS_PLAYWRIGHT=false
+if [ -f "${PROJECT_DIR}/node_modules/.bin/playwright" ]; then
+    HAS_PLAYWRIGHT=true
+    echo -e "  ${GREEN}✅ Playwright（项目级已安装）${NC}"
+elif command -v playwright &>/dev/null; then
+    HAS_PLAYWRIGHT=true
+    echo -e "  ${GREEN}✅ Playwright（全局已安装）${NC}"
+else
+    echo -e "  ${YELLOW}⚠️  Playwright — 未安装${NC}"
+    echo "     用于：L3 E2E 测试（模拟用户操作）、L4 视觉测试、多浏览器兼容性测试"
+    read -p "     是否安装？[Y/n]: " INSTALL_PW
+    if [[ ! "$INSTALL_PW" =~ ^[Nn]$ ]]; then
+        npm install -D @playwright/test && npx playwright install
+        HAS_PLAYWRIGHT=true
+        echo -e "     ${GREEN}✅ 安装完成${NC}"
+    else
+        echo -e "     ${YELLOW}跳过（后续：npm install -D @playwright/test && npx playwright install）${NC}"
+    fi
 fi
 
-read -p "是否启用非功能测试（性能/安全/可访问性）？[y/N]: " ENABLE_L5
-L5_NONFUNCTIONAL="false"
-if [[ "$ENABLE_L5" =~ ^[Yy]$ ]]; then
-    L5_NONFUNCTIONAL="true"
+# --- Midscene.js（L4 UI 视觉测试增强）---
+HAS_MIDSCENE=false
+if [ -f "${PROJECT_DIR}/node_modules/.bin/midscene" ] || npm list @midscene/web &>/dev/null 2>&1; then
+    HAS_MIDSCENE=true
+    echo -e "  ${GREEN}✅ Midscene.js（已安装）${NC}"
+else
+    echo -e "  ${YELLOW}⚠️  Midscene.js — 未安装${NC}"
+    echo "     用于：L4 UI 视觉测试（自然语言断言 + 截图对比设计稿）"
+    read -p "     是否安装？[y/N]: " INSTALL_MS
+    if [[ "$INSTALL_MS" =~ ^[Yy]$ ]]; then
+        npm install -D @midscene/web
+        HAS_MIDSCENE=true
+        echo -e "     ${GREEN}✅ 安装完成${NC}"
+    else
+        echo -e "     ${YELLOW}跳过（后续：npm install -D @midscene/web）${NC}"
+    fi
 fi
+UI_VISUAL_TESTING="$HAS_MIDSCENE"
+
+# --- k6（L5 性能压测）---
+HAS_K6=false
+if command -v k6 &>/dev/null; then
+    HAS_K6=true
+    echo -e "  ${GREEN}✅ k6（$(k6 version 2>/dev/null | head -1)）${NC}"
+else
+    echo -e "  ${YELLOW}⚠️  k6 — 未安装${NC}"
+    echo "     用于：L5 性能测试（API 压测、并发场景模拟）"
+    read -p "     是否安装？[y/N]: " INSTALL_K6
+    if [[ "$INSTALL_K6" =~ ^[Yy]$ ]]; then
+        if command -v brew &>/dev/null; then
+            brew install k6
+        else
+            echo "     请手动安装：https://k6.io/docs/get-started/installation/"
+        fi
+        command -v k6 &>/dev/null && HAS_K6=true && echo -e "     ${GREEN}✅ 安装完成${NC}"
+    else
+        echo -e "     ${YELLOW}跳过（后续：brew install k6）${NC}"
+    fi
+fi
+
+# --- Lighthouse（L5 性能评分）---
+HAS_LIGHTHOUSE=false
+if command -v lighthouse &>/dev/null || [ -f "${PROJECT_DIR}/node_modules/.bin/lighthouse" ]; then
+    HAS_LIGHTHOUSE=true
+    echo -e "  ${GREEN}✅ Lighthouse（已安装）${NC}"
+else
+    echo -e "  ${YELLOW}⚠️  Lighthouse — 未安装${NC}"
+    echo "     用于：L5 性能测试（逐页面性能评分、Core Web Vitals）"
+    read -p "     是否安装？[y/N]: " INSTALL_LH
+    if [[ "$INSTALL_LH" =~ ^[Yy]$ ]]; then
+        npm install -D lighthouse
+        HAS_LIGHTHOUSE=true
+        echo -e "     ${GREEN}✅ 安装完成${NC}"
+    else
+        echo -e "     ${YELLOW}跳过（后续：npm install -D lighthouse）${NC}"
+    fi
+fi
+
+# --- 项目测试框架 ---
+HAS_TEST_FRAMEWORK=false
+if [ -n "$DETECTED_UNIT_TEST" ]; then
+    HAS_TEST_FRAMEWORK=true
+    echo -e "  ${GREEN}✅ ${DETECTED_UNIT_TEST}（项目测试框架）${NC}"
+else
+    echo -e "  ${YELLOW}⚠️  未检测到测试框架（vitest/jest/pytest）${NC}"
+    echo "     L1 单元测试需要测试框架，建议在项目中安装"
+fi
+
+# --- L5 非功能测试总开关 ---
+echo ""
+L5_NONFUNCTIONAL="false"
+if [ "$HAS_K6" = true ] || [ "$HAS_LIGHTHOUSE" = true ]; then
+    L5_NONFUNCTIONAL="true"
+    echo -e "  ${GREEN}L5 非功能测试：已启用（检测到 k6/Lighthouse）${NC}"
+else
+    read -p "是否启用非功能测试（性能/安全/可访问性）？[y/N]: " ENABLE_L5
+    if [[ "$ENABLE_L5" =~ ^[Yy]$ ]]; then
+        L5_NONFUNCTIONAL="true"
+    fi
+fi
+
+echo ""
+echo -e "${CYAN}测试工具检测完成。未安装的工具对应的测试层级会自动跳过。${NC}"
 
 # ─────────────────────────────────────────
 # Step 6: Token 配置
@@ -615,6 +678,9 @@ testing:
     business_logic: 80
     utility_functions: 90
   playwright_installed: ${HAS_PLAYWRIGHT}
+  midscene_installed: ${HAS_MIDSCENE}
+  k6_installed: ${HAS_K6}
+  lighthouse_installed: ${HAS_LIGHTHOUSE}
   ui_visual_testing: ${UI_VISUAL_TESTING}
   l5_nonfunctional: ${L5_NONFUNCTIONAL}
 
