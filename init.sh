@@ -483,6 +483,39 @@ echo ""
 echo -e "${GREEN}Step 5: 测试配置${NC}"
 echo ""
 
+# 检测 Playwright
+echo -e "${CYAN}检测 E2E 测试工具...${NC}"
+HAS_PLAYWRIGHT=false
+
+# 检查项目级安装
+if [ -f "${PROJECT_DIR}/node_modules/.bin/playwright" ]; then
+    HAS_PLAYWRIGHT=true
+    echo -e "  ${GREEN}✅ Playwright 已安装（项目级）${NC}"
+# 检查全局安装
+elif command -v playwright &>/dev/null; then
+    HAS_PLAYWRIGHT=true
+    echo -e "  ${GREEN}✅ Playwright 已安装（全局）${NC}"
+else
+    echo -e "  ${YELLOW}⚠️  未检测到 Playwright${NC}"
+    echo ""
+    echo "  Playwright 是浏览器自动化测试工具，用于："
+    echo "    - L3 E2E 端到端测试（模拟用户操作：点击、填写、导航）"
+    echo "    - L4 UI 视觉测试（截图对比）"
+    echo "    - 兼容性测试（多浏览器 + 多设备）"
+    echo ""
+    read -p "  是否现在安装 Playwright？[Y/n]: " INSTALL_PW
+    if [[ ! "$INSTALL_PW" =~ ^[Nn]$ ]]; then
+        echo "  正在安装..."
+        npm install -D @playwright/test
+        npx playwright install
+        HAS_PLAYWRIGHT=true
+        echo -e "  ${GREEN}✅ Playwright 安装完成${NC}"
+    else
+        echo -e "  ${YELLOW}跳过。后续可手动安装：npm install -D @playwright/test && npx playwright install${NC}"
+    fi
+fi
+echo ""
+
 read -p "是否启用 UI 视觉测试（Midscene.js）？[y/N]: " ENABLE_UI_TEST
 UI_VISUAL_TESTING="false"
 if [[ "$ENABLE_UI_TEST" =~ ^[Yy]$ ]]; then
@@ -581,6 +614,7 @@ testing:
   unit_coverage_threshold:
     business_logic: 80
     utility_functions: 90
+  playwright_installed: ${HAS_PLAYWRIGHT}
   ui_visual_testing: ${UI_VISUAL_TESTING}
   l5_nonfunctional: ${L5_NONFUNCTIONAL}
 
