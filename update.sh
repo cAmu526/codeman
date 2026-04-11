@@ -92,6 +92,8 @@ if [ "$HAS_CURSOR" = true ]; then
     rsync -a --delete \
         --exclude='.git' \
         --exclude='*.bak' \
+        --exclude='external-skills-registry.json' \
+        --exclude='.source-path' \
         "${CODEMAN_SRC}/" "${CURSOR_INSTALL_DIR}/"
     echo "  ✅ [Cursor] Skills、rules、templates 已全量更新"
 fi
@@ -100,6 +102,8 @@ if [ "$HAS_CLAUDE" = true ]; then
     rsync -a --delete \
         --exclude='.git' \
         --exclude='*.bak' \
+        --exclude='external-skills-registry.json' \
+        --exclude='.source-path' \
         "${CODEMAN_SRC}/" "${CLAUDE_INSTALL_DIR}/"
     echo "  ✅ [Claude Code] Skills、rules、templates 已全量更新"
     bash "${CODEMAN_SRC}/adapters/claude-code/link-skills.sh" "${CLAUDE_INSTALL_DIR}"
@@ -116,6 +120,8 @@ if [ "$HAS_TRAE" = true ]; then
     rsync -a --delete \
         --exclude='.git' \
         --exclude='*.bak' \
+        --exclude='external-skills-registry.json' \
+        --exclude='.source-path' \
         "${CODEMAN_SRC}/" "${TRAE_INSTALL_DIR}/"
     echo "  ✅ [Trae] Skills、rules、templates 已全量更新"
     bash "${CODEMAN_SRC}/adapters/trae/link-skills.sh" "${TRAE_INSTALL_DIR}"
@@ -459,25 +465,103 @@ echo ""
 echo -e "${GREEN}Step 3: 检查第三方 Skills 更新...${NC}"
 
 EXT_UPDATED=false
-# 从 Claude Code 注册表读取（Cursor/Trae 同步更新）
+# 确定注册表主文件路径（优先 Claude Code，其次 Cursor）
 REGISTRY_FILE=""
 [ "$HAS_CLAUDE" = true ] && REGISTRY_FILE="${CLAUDE_INSTALL_DIR}/external-skills-registry.json"
 [ -z "$REGISTRY_FILE" ] && [ "$HAS_CURSOR" = true ] && REGISTRY_FILE="${CURSOR_INSTALL_DIR}/external-skills-registry.json"
+[ -z "$REGISTRY_FILE" ] && [ "$HAS_TRAE" = true ] && REGISTRY_FILE="${TRAE_INSTALL_DIR}/external-skills-registry.json"
 
+# 注册表不存在 → 创建空注册表（注册表是框架基础结构文件，始终存在）
+if [ -n "$REGISTRY_FILE" ] && [ ! -f "$REGISTRY_FILE" ]; then
+    echo "[]" > "$REGISTRY_FILE"
+    # 同步到所有 IDE
+    [ "$HAS_CURSOR" = true ] && echo "[]" > "${CURSOR_INSTALL_DIR}/external-skills-registry.json"
+    [ "$HAS_CLAUDE" = true ] && echo "[]" > "${CLAUDE_INSTALL_DIR}/external-skills-registry.json"
+    [ "$HAS_TRAE" = true ] && echo "[]" > "${TRAE_INSTALL_DIR}/external-skills-registry.json"
+fi
+
+# 检测已安装但未注册的第三方 Skills（兼容注册表功能上线前已安装的情况）
 if [ -n "$REGISTRY_FILE" ] && [ -f "$REGISTRY_FILE" ]; then
-    # 提取已注册的 skill 名称列表
+    REGISTRY_REBUILT=false
+
+    # 检测 superpowers
+    SP_INSTALLED=false
+    [ -d "${HOME}/.claude/skills/superpowers/.git" ] && SP_INSTALLED=true
+    [ -d "${HOME}/.cursor/skills/superpowers/.git" ] && SP_INSTALLED=true
+    [ -d "${HOME}/.trae/skills/superpowers/.git" ] && SP_INSTALLED=true
+
+    if [ "$SP_INSTALLED" = true ]; then
+        # 检查 brainstorming 是否已注册
+        if ! grep -q "brainstorming" "$REGISTRY_FILE" 2>/dev/null; then
+            echo -e "  ${YELLOW}检测到已安装的 superpowers 未在注册表中，正在补录...${NC}"
+            python3 - "$REGISTRY_FILE" << 'PYEOF'
+import sys, json
+filepath = sys.argv[1]
+with open(filepath, 'r') as f:
+    registry = json.load(f)
+registry.append({
+    "name": "superpowers",
+    "source": "https://github.com/obra/superpowers",
+    "skill_path": "skills/brainstorming/SKILL.md",
+    "suggested_hook": "requirements.before_step1",
+    "suggested_output": "docs/superpowers/specs/",
+    "description": "协作式头脑风暴 + 浏览器可视化 mockup"
+})
+with open(filepath, 'w') as f:
+    json.dump(registry, f, indent=2, ensure_ascii=False)
+PYEOF
+            echo -e "  ${GREEN}✅ 注册表已补录：superpowers/brainstorming${NC}"
+            REGISTRY_REBUILT=true
+        fi
+
+        # 检查 subagent-driven-development 是否已注册
+        if ! grep -q "subagent-driven-development" "$REGISTRY_FILE" 2>/dev/null; then
+            python3 - "$REGISTRY_FILE" << 'PYEOF'
+import sys, json
+filepath = sys.argv[1]
+with open(filepath, 'r') as f:
+    registry = json.load(f)
+registry.append({
+    "name": "superpowers",
+    "source": "https://github.com/obra/superpowers",
+    "skill_path": "skills/subagent-driven-development/SKILL.md",
+    "suggested_hook": "development.execution",
+    "suggested_output": "",
+    "description": "Superpowers 逐任务子代理派遣 + 两阶段 Review"
+})
+with open(filepath, 'w') as f:
+    json.dump(registry, f, indent=2, ensure_ascii=False)
+PYEOF
+            echo -e "  ${GREEN}✅ 注册表已补录：superpowers/subagent-driven-development${NC}"
+            REGISTRY_REBUILT=true
+        fi
+    fi
+
+    # 补录后同步到所有 IDE（跳过与 REGISTRY_FILE 相同的路径）
+    if [ "$REGISTRY_REBUILT" = true ]; then
+        [ "$HAS_CURSOR" = true ] && [ "${CURSOR_INSTALL_DIR}/external-skills-registry.json" != "$REGISTRY_FILE" ] && cp "$REGISTRY_FILE" "${CURSOR_INSTALL_DIR}/external-skills-registry.json"
+        [ "$HAS_CLAUDE" = true ] && [ "${CLAUDE_INSTALL_DIR}/external-skills-registry.json" != "$REGISTRY_FILE" ] && cp "$REGISTRY_FILE" "${CLAUDE_INSTALL_DIR}/external-skills-registry.json"
+        [ "$HAS_TRAE" = true ] && [ "${TRAE_INSTALL_DIR}/external-skills-registry.json" != "$REGISTRY_FILE" ] && cp "$REGISTRY_FILE" "${TRAE_INSTALL_DIR}/external-skills-registry.json"
+    fi
+fi
+
+# 读取注册表，git pull 已注册的第三方 Skills
+if [ -n "$REGISTRY_FILE" ] && [ -f "$REGISTRY_FILE" ]; then
     EXT_NAMES=$(python3 - "$REGISTRY_FILE" << 'PYEOF' 2>/dev/null
 import sys, json
 with open(sys.argv[1], 'r') as f:
     registry = json.load(f)
+seen = set()
 for entry in registry:
-    print(entry['name'])
+    name = entry['name']
+    if name not in seen:
+        seen.add(name)
+        print(name)
 PYEOF
 )
 
     if [ -n "$EXT_NAMES" ]; then
         while IFS= read -r ext_name; do
-            # 尝试在各 IDE 的 skills 目录下更新
             UPDATED_ONE=false
             if [ "$HAS_CLAUDE" = true ] && [ -d "${HOME}/.claude/skills/${ext_name}/.git" ]; then
                 echo -n "  ${ext_name}..."
@@ -500,46 +584,7 @@ PYEOF
 fi
 
 if [ "$EXT_UPDATED" = false ]; then
-    echo "  无已注册的第三方 Skills 或无需更新"
-fi
-
-# 补全 registry 中缺失的 entry（如 superpowers 新增了 subagent-driven-development）
-if [ -n "$REGISTRY_FILE" ] && [ -f "$REGISTRY_FILE" ]; then
-    REGISTRY_PATCHED=false
-
-    # superpowers 已安装但 registry 缺 subagent-driven-development
-    if echo "$EXT_NAMES" | grep -q "^superpowers$" 2>/dev/null; then
-        if ! grep -q "subagent-driven-development" "$REGISTRY_FILE" 2>/dev/null; then
-            python3 - "$REGISTRY_FILE" << 'PYEOF'
-import sys, json
-filepath = sys.argv[1]
-with open(filepath, 'r') as f:
-    registry = json.load(f)
-registry.append({
-    "name": "superpowers",
-    "source": "https://github.com/obra/superpowers",
-    "skill_path": "skills/subagent-driven-development/SKILL.md",
-    "suggested_hook": "development.execution",
-    "suggested_output": "",
-    "description": "Superpowers 逐任务子代理派遣 + 两阶段 Review"
-})
-with open(filepath, 'w') as f:
-    json.dump(registry, f, indent=2, ensure_ascii=False)
-PYEOF
-            echo -e "  ${GREEN}✅ 注册表已补全：superpowers/subagent-driven-development${NC}"
-            REGISTRY_PATCHED=true
-        fi
-    fi
-
-    # 同步到其他 IDE 的注册表
-    if [ "$REGISTRY_PATCHED" = true ]; then
-        if [ "$HAS_CURSOR" = true ] && [ -f "${CURSOR_INSTALL_DIR}/external-skills-registry.json" ]; then
-            cp "$REGISTRY_FILE" "${CURSOR_INSTALL_DIR}/external-skills-registry.json"
-        fi
-        if [ "$HAS_TRAE" = true ] && [ -f "${TRAE_INSTALL_DIR}/external-skills-registry.json" ]; then
-            cp "$REGISTRY_FILE" "${TRAE_INSTALL_DIR}/external-skills-registry.json"
-        fi
-    fi
+    echo "  无第三方 Skills 需要更新"
 fi
 
 # ─────────────────────────────────────────

@@ -954,6 +954,13 @@ fi
 [ "$HAS_TRAE" = true ] && echo "${CODEMAN_SRC}" > "${TRAE_INSTALL_DIR}/.source-path"
 
 # ─────────────────────────────────────────
+# 确保注册表始终存在（即使没装第三方 Skills 也写空 []）
+# ─────────────────────────────────────────
+[ "$HAS_CURSOR" = true ] && [ ! -f "${CURSOR_INSTALL_DIR}/external-skills-registry.json" ] && echo "[]" > "${CURSOR_INSTALL_DIR}/external-skills-registry.json"
+[ "$HAS_CLAUDE" = true ] && [ ! -f "${CLAUDE_INSTALL_DIR}/external-skills-registry.json" ] && echo "[]" > "${CLAUDE_INSTALL_DIR}/external-skills-registry.json"
+[ "$HAS_TRAE" = true ] && [ ! -f "${TRAE_INSTALL_DIR}/external-skills-registry.json" ] && echo "[]" > "${TRAE_INSTALL_DIR}/external-skills-registry.json"
+
+# ─────────────────────────────────────────
 # 完成
 # ─────────────────────────────────────────
 echo ""
