@@ -1560,12 +1560,14 @@ Read {CODEMAN_HOME}/skills/orchestrator/SKILL.md
 
 ### Step 2: 当前项目配置迁移
 
-读取当前项目 `.codeman/config.yaml` 的 `codeman_config_version` 字段：
+**先读取框架最新版本号：** 读取 `{CODEMAN_HOME}/templates/config.yaml` 的 `codeman_config_version` 字段，作为**目标版本**（不要使用本文件中硬编码的版本号，因为本文件可能是旧版本）。
 
-- 等于当前版本（3）→ 输出 "✅ 项目配置已是最新版本，无需迁移"
-- 不存在或 < 当前版本 → 执行迁移：
+然后读取当前项目 `.codeman/config.yaml` 的 `codeman_config_version` 字段：
 
-**当前配置版本：3**
+- 等于目标版本 → 输出 "✅ 项目配置已是最新版本，无需迁移"
+- 不存在或 < 目标版本 → 执行迁移：
+
+**当前目标版本：3**（此为参考值，实际以 `{CODEMAN_HOME}/templates/config.yaml` 中读取的为准）
 
 **迁移表：**
 
@@ -1578,7 +1580,7 @@ Read {CODEMAN_HOME}/skills/orchestrator/SKILL.md
 **迁移流程：**
 1. 展示将追加的配置段，询问用户确认
 2. 确认后在 config.yaml 末尾追加缺失的配置段（只追加不修改已有配置）
-3. 更新 `codeman_config_version` 为当前版本
+3. 更新 `codeman_config_version` 为目标版本（从 `{CODEMAN_HOME}/templates/config.yaml` 读取的值）
 
 ### Step 3: 全局规范文件更新
 
