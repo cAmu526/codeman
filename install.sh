@@ -979,8 +979,8 @@ if [ "$ALL_OK" = true ]; then
     echo "  CodeMan 会自动识别是新项目还是旧项目，并完成初始化。"
     echo ""
     echo -e "${BLUE}升级方式：${NC}"
-    echo "  方式 1：在项目中说 CodeMan 升级"
-    echo "  方式 2：curl -fsSL https://raw.githubusercontent.com/cAmu526/codeman/main/install.sh | bash"
+    echo "  方式 1（推荐）：在项目中说 CodeMan 升级（升级框架 + 升级项目配置）"
+    echo "  方式 2：curl -fsSL https://raw.githubusercontent.com/cAmu526/codeman/main/install.sh | bash（仅升级框架）"
 else
     echo -e "${RED}  安装过程中有错误，请检查上方输出。${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
