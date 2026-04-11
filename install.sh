@@ -22,7 +22,31 @@ if [ ! -f "${BASH_SOURCE[0]}" ] 2>/dev/null; then
         git clone --quiet "${CODEMAN_REPO}" "${CODEMAN_REMOTE_DIR}"
     fi
 
-    exec bash "${CODEMAN_REMOTE_DIR}/install.sh" "$@" </dev/tty
+    # 检测已安装的 IDE
+    INSTALLED=""
+    [ -d "${HOME}/.cursor/skills/.codeman/skills" ] && INSTALLED="${INSTALLED} Cursor"
+    [ -d "${HOME}/.claude/skills/.codeman/skills" ] && INSTALLED="${INSTALLED} Claude_Code"
+    [ -d "${HOME}/.trae/skills/.codeman/skills" ] && INSTALLED="${INSTALLED} Trae"
+
+    if [ -n "$INSTALLED" ]; then
+        echo ""
+        echo "检测到以下 IDE 已安装 CodeMan："
+        for ide in $INSTALLED; do
+            echo "  - ${ide//_/ }"
+        done
+        echo ""
+        echo "选择操作："
+        echo "  1) 升级全部已安装环境（推荐）"
+        echo "  2) 重新进入完整安装流程"
+        read -p "请输入选项 [1/2，默认 1]: " choice </dev/tty
+        if [ "$choice" = "2" ]; then
+            exec bash "${CODEMAN_REMOTE_DIR}/install.sh" "$@" </dev/tty
+        else
+            exec bash "${CODEMAN_REMOTE_DIR}/update.sh" "$@"
+        fi
+    else
+        exec bash "${CODEMAN_REMOTE_DIR}/install.sh" "$@" </dev/tty
+    fi
 fi
 
 RED='\033[0;31m'
