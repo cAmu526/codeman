@@ -22,7 +22,7 @@ if [ ! -f "${BASH_SOURCE[0]}" ] 2>/dev/null; then
         git clone --quiet "${CODEMAN_REPO}" "${CODEMAN_REMOTE_DIR}"
     fi
 
-    exec bash "${CODEMAN_REMOTE_DIR}/install.sh" "$@"
+    exec bash "${CODEMAN_REMOTE_DIR}/install.sh" "$@" </dev/tty
 fi
 
 RED='\033[0;31m'
