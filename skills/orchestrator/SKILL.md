@@ -1,6 +1,6 @@
 ---
 name: codeman-orchestrator
-description: "CodeMan 主编排入口。当用户提到以下关键词时触发：CodeMan、初始化、开始开发、继续开发、继续、修复 Bug、新需求、版本迭代、迭代、接入现有项目、CodeMan 状态、查看进度、项目概览、CodeMan 概览、CodeMan 同步、同步文档、添加规则、创建规范。负责读取项目状态、识别场景、调度对应工作流。"
+description: "CodeMan 主编排入口。当用户提到以下关键词时触发：CodeMan、初始化、开始开发、继续开发、继续、修复 Bug、新需求、版本迭代、迭代、接入现有项目、CodeMan 状态、查看进度、项目概览、CodeMan 概览、CodeMan 同步、同步文档、添加规则、创建规范、升级 CodeMan、CodeMan 升级。负责读取项目状态、识别场景、调度对应工作流。"
 ---
 
 # CodeMan Orchestrator — 主编排入口
@@ -121,6 +121,10 @@ git log --since="{last_updated}" --not --author="{当前 git 用户}" --oneline
 - 触发条件：用户说"注册 Skill"、"挂载 Skill"、"添加外部工具"、"把 XX 挂到 XX 阶段"、"移除外部 Skill"、"查看已注册 Skill"
 - 执行：见下方「外部 Skill 管理流程」
 
+**特殊：框架升级**
+- 触发条件：用户说"CodeMan 升级"、"升级 CodeMan"、"升级框架"、"更新 CodeMan"
+- 执行：见下方「CodeMan 升级流程」
+
 ### Step 3: 轻量任务判定规则
 
 **必须全部满足才判定为轻量任务：**
@@ -196,7 +200,7 @@ Skill 名称与路径映射表：
 读取 `.codeman/config.yaml` 的 `external_skills` 配置。如果配置不为空，在调度内部 Skill 时遵循以下规则：
 
 1. **进入任何阶段的任何 Step 前后**，检查是否有外部 Skill 挂载在当前位置
-   - 匹配规则：`hook` 字段格式为 `{阶段名}.before_step{N}` 或 `{阶段名}.after_step{N}`
+   - 匹配规则：`hook` 字段格式为 `{阶段名}.before_step{N}`、`{阶段名}.after_step{N}` 或 `{阶段名}.execution`（替换该阶段的执行逻辑，由阶段 Skill 自行检测和处理）
    - 阶段名对应内部 Skill 目录名：requirements / design / development / testing / review / fix / deploy
 2. **匹配到时**，按 `order` 升序依次执行：
    - 检查 `path` 文件是否存在。不存在则跳过并提示用户（"外部 Skill {name} 未找到，已跳过"）
@@ -207,8 +211,10 @@ Skill 名称与路径映射表：
    - 执行完毕后，产出写入 `output` 指定的路径（外部 Skill 自行写入，CodeMan 不干预写入过程）
 3. **产出对接**：后续内部 Skill 的前置条件中，如需外部 Skill 产出，从 `output` 路径读取
 4. **无配置时**：`external_skills` 为空或不存在时，行为与当前完全一致，无任何影响
+5. **execution 类型 hook**：与 before/after 不同，`{阶段名}.execution` hook 不由 orchestrator 在 Step 前后自动检查。它由对应阶段的 Skill 在执行策略选择时主动读取 config.yaml 并检测。当匹配到 execution hook 时，该 Skill 将执行逻辑整体托管给外部 Skill，完成后跳过被替代的内部步骤。
 
 **所有场景通用规则：**
+
 每次阶段转换（S{N} → S{N+1}）时，重新读取 DIRECTIVES.md，
 执行"周期性上下文回顾协议"，输出回顾摘要后再调度下一个 Skill。
 
@@ -1515,3 +1521,70 @@ CodeMan 初始化完成
 ### 修改（用户说"改到"、"调整"、"把 XX 改到 XX"）
 
 从用户描述定位目标 + 识别要修改的字段，展示修改前后对比，用户确认后更新 `config.yaml`。
+
+---
+
+## CodeMan 升级流程
+
+用户说「CodeMan 升级」时执行，在当前项目中一键完成框架升级 + 项目配置迁移。
+
+### Step 1: 拉取最新源码 + 同步框架文件
+
+```bash
+# 读取源码路径
+SOURCE_PATH=$(cat {CODEMAN_HOME}/.source-path 2>/dev/null)
+
+# 如果 .source-path 不存在，提示用户
+if [ -z "$SOURCE_PATH" ] || [ ! -d "$SOURCE_PATH" ]; then
+    echo "⚠️ 未找到 CodeMan 源码路径。请手动执行："
+    echo "   bash /path/to/codeman/update.sh"
+    return
+fi
+
+# 拉取最新源码
+cd "$SOURCE_PATH" && git pull
+
+# 执行 update.sh 同步到安装目录
+bash "$SOURCE_PATH/update.sh"
+```
+
+展示 update.sh 的输出结果。
+
+### Step 2: 当前项目配置迁移
+
+读取当前项目 `.codeman/config.yaml` 的 `codeman_config_version` 字段：
+
+- 等于当前版本（2）→ 输出 "✅ 项目配置已是最新版本，无需迁移"
+- 不存在或 < 当前版本 → 执行迁移：
+
+**当前配置版本：2**
+
+**迁移表：**
+
+| 从版本 | 到版本 | 追加内容 | 默认值 |
+|-------|-------|---------|-------|
+| 无/1 | 2 | `codeman_config_version` | `2` |
+| 无/1 | 2 | `external_skills` | `[]`（附注释示例） |
+
+**迁移流程：**
+1. 展示将追加的配置段，询问用户确认
+2. 确认后在 config.yaml 末尾追加缺失的配置段（只追加不修改已有配置）
+3. 更新 `codeman_config_version` 为当前版本
+
+### Step 3: 全局规范文件更新
+
+用 `{CODEMAN_HOME}/rules/global-*.mdc` 覆盖项目 `.codeman/rules/global-*.mdc`。
+
+静默覆盖，不需要用户确认（纯框架内容，用户自定义规范在 `proj-*.mdc` 中不受影响）。
+
+### Step 4: 展示升级摘要
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CodeMan 升级完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+框架文件：✅ 已同步最新版本
+项目配置：✅ 已迁移到 v{N}（或"已是最新"）
+全局规范：✅ 已更新 {N} 个文件
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```

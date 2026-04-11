@@ -714,6 +714,21 @@ tools:
   midscene_config:
     model: "qwen-vl-max"
     timeout: 30000
+
+# CodeMan 配置版本（框架升级时用于自动迁移，请勿手动修改）
+codeman_config_version: 2
+
+# 外部 Skill 注册
+# hook 类型：before_step{N} / after_step{N}（步骤前后）、execution（替换执行逻辑）
+external_skills: []
+  # 示例：
+  # - name: "subagent-driven-development"
+  #   path: "~/.claude/skills/superpowers/skills/subagent-driven-development/SKILL.md"
+  #   hook: "development.execution"
+  #   order: 1
+  #   output: ""
+  #   description: "Superpowers 逐任务子代理派遣 + 两阶段 Review"
+  #   confirm: true
 EOF
 
 # ─────────────────────────────────────────

@@ -12,6 +12,20 @@ set -e
 
 CODEMAN_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# 如果源码目录是 git 仓库，先拉取最新版本
+if [ -d "${CODEMAN_SRC}/.git" ]; then
+    RED_EARLY='\033[0;31m'
+    GREEN_EARLY='\033[0;32m'
+    YELLOW_EARLY='\033[1;33m'
+    NC_EARLY='\033[0m'
+    echo -e "${GREEN_EARLY}Step 0: 拉取最新源码...${NC_EARLY}"
+    if git -C "${CODEMAN_SRC}" pull --quiet 2>/dev/null; then
+        echo "  ✅ 源码已更新到最新版本"
+    else
+        echo -e "  ${YELLOW_EARLY}⚠️ git pull 失败，将使用本地现有版本继续${NC_EARLY}"
+    fi
+fi
+
 CURSOR_INSTALL_DIR="${HOME}/.cursor/skills/.codeman"
 CURSOR_RULES_DIR="${HOME}/.cursor/rules"
 CURSOR_BOOTSTRAP="${CURSOR_RULES_DIR}/codeman-bootstrap.mdc"
@@ -107,6 +121,11 @@ if [ "$HAS_TRAE" = true ]; then
     bash "${CODEMAN_SRC}/adapters/trae/link-skills.sh" "${TRAE_INSTALL_DIR}"
 fi
 
+# 刷新源码路径记录
+[ "$HAS_CURSOR" = true ] && echo "${CODEMAN_SRC}" > "${CURSOR_INSTALL_DIR}/.source-path"
+[ "$HAS_CLAUDE" = true ] && echo "${CODEMAN_SRC}" > "${CLAUDE_INSTALL_DIR}/.source-path"
+[ "$HAS_TRAE" = true ] && echo "${CODEMAN_SRC}" > "${TRAE_INSTALL_DIR}/.source-path"
+
 # ─────────────────────────────────────────
 # Step 2: 更新 Bootstrap
 # ─────────────────────────────────────────
@@ -144,6 +163,7 @@ Read ~/.cursor/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 - `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
+- `CodeMan 升级` — 升级 CodeMan 框架并更新当前项目配置
 
 ## 阶段衔接规则（重要）
 
@@ -207,6 +227,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 - `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
+- `CodeMan 升级` — 升级 CodeMan 框架并更新当前项目配置
 
 ## 阶段衔接规则（重要）
 
@@ -296,6 +317,7 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 - `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
+- `CodeMan 升级` — 升级 CodeMan 框架并更新当前项目配置
 
 ## 阶段衔接规则（重要）
 
@@ -392,6 +414,7 @@ Read ~/.trae/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
 - `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
+- `CodeMan 升级` — 升级 CodeMan 框架并更新当前项目配置
 
 ## 阶段衔接规则（重要）
 

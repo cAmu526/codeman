@@ -36,6 +36,7 @@
 - 修改 install.sh 中的 bootstrap 模板 → 必须同步修改 update.sh 中的对应模板
 - 修改任何 Skill 文件 → 必须在源码目录（skills/）修改，不要改安装目录（~/.claude/skills/.codeman/）
 - 修改完后通过 update.sh 同步到安装目录
+- 新增 config.yaml 配置项 → 必须同时更新三处：`templates/config.yaml`、`init.sh` heredoc、`skills/orchestrator/SKILL.md` 迁移表（codeman_config_version +1）
 
 ## 其他项目约束
 

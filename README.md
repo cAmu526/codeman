@@ -61,10 +61,19 @@ AI：【技术方案】模块划分：3 个模块...
 ### 1. 安装（一次性，约 10 秒）
 
 ```bash
-bash /path/to/codeman/install.sh
+curl -fsSL https://raw.githubusercontent.com/cAmu526/codeman/main/install.sh | bash
+```
+
+或者手动克隆后安装：
+
+```bash
+git clone https://github.com/cAmu526/codeman.git ~/.codeman
+bash ~/.codeman/install.sh
 ```
 
 安装脚本自动检测已安装的 IDE 并配置。安装过程中会询问是否安装推荐的第三方 Skills（头脑风暴、线框图、UI 组件规则库），也支持输入自定义 GitHub URL 安装其他 Skills。**Cursor 用户安装后需重启。**
+
+> **升级方式：** 在任意已初始化的项目中说 `CodeMan 升级`，或重新执行上方的 curl 命令。
 
 <details>
 <summary>安装位置详情</summary>
@@ -191,6 +200,7 @@ AI：读取文档 + 扫描代码...
 | `CodeMan 添加规则：[描述]` | 写项目规范 | 根据描述生成 `.codeman/rules/proj-*.mdc` 并同步到 IDE |
 | `CodeMan 接手` | 外部交接 | 从其他工具中途切换，指定已有文档和目标阶段 |
 | `把 XX 挂到 XX 阶段` | 注册外部 Skill | 将第三方 Skill 挂载到指定工作流阶段（自然语言配置） |
+| `CodeMan 升级` | 升级框架 | 拉取最新源码 + 同步框架文件 + 迁移当前项目配置 |
 
 > **提示：** 你不需要记住所有命令。大多数时候你只需要 `CodeMan 初始化`（第一次）和 `CodeMan 继续`（后续）。每个阶段完成后 AI 都会提示你下一步该做什么。
 
@@ -687,10 +697,18 @@ external_skills:
 
 ### 升级框架
 
-在 CodeMan **源码目录**下执行（不是安装目录）：
+**推荐方式：** 在任意已初始化的项目中说：
+
+```
+CodeMan 升级
+```
+
+一键完成：拉取最新源码 → 同步框架文件到安装目录 → 迁移当前项目 config.yaml → 更新全局规范文件。
+
+**备选方式：** 重新执行安装命令（等效于升级）：
 
 ```bash
-bash /path/to/codeman/update.sh
+curl -fsSL https://raw.githubusercontent.com/cAmu526/codeman/main/install.sh | bash
 ```
 
 升级只更新框架文件，不会覆盖各项目的 `.codeman/docs/` 文档和项目级规范。同时自动更新已安装的第三方 Skills（`git pull`）。脚本会自动检测已安装的环境并同时升级。Cursor 用户升级后需重启 Cursor。
@@ -894,6 +912,11 @@ codeman/
   - 非源码目录排除列表（node_modules / vendor / dist / build / .next / __pycache__ / coverage 等 16 类）
   - **Mode A 文档深度升级**：feat-*.md 从 5 章节简化模板升级为引用完整 feat-template.md（11+ 章节含 GWT 验收标准、业务流程图、数据字典、边界场景等）；mod-*.md 从 5 项提取扩展为完整模板 13 章节；每章节附「反向填充指导」指明代码提取来源；无法从代码推断的章节标 `[legacy: 待迭代时补充]`
   - **init.sh 环境检测修复**：ACTIVE_HOST 检测新增 Trae（`~/.trae/`）路径识别，修复从 Trae 安装目录运行时 ACTIVE_HOST 回退为 cursor 的问题
+  - **开发阶段外部 Skill 托管**：Step 1.5 新增「外部 Skill 托管」策略，支持将开发执行阶段整体托管给第三方 Skill（如 Superpowers 的 subagent-driven-development），通过 `config.yaml` 的 `external_skills` 配置 `development.execution` hook 启用；不配置时行为与原来完全一致
+  - **Subagent 并行安全检测**：内置并行策略增加同文件冲突检测——多个任务涉及同一文件时即使无显式依赖也强制串行执行，防止并发写冲突
+  - **项目配置自动迁移**：config.yaml 引入 `codeman_config_version` 版本号，框架升级后首次运行 CodeMan 时自动检测并追加缺失配置段（只追加不覆盖），同时静默更新全局规范文件（global-*.mdc）
+  - **`CodeMan 升级` 命令**：一键完成框架升级（git pull + update.sh）+ 当前项目配置迁移（config.yaml 版本化追加）+ 全局规范文件更新
+  - **curl 一行安装**：支持 `curl -fsSL https://raw.githubusercontent.com/cAmu526/codeman/main/install.sh | bash` 远程安装和升级，自动 clone 到 `~/.codeman/`
 - **v1.1** — 2026-04-10：外部交接接入 + 骨架无缝迭代 + 代码回归基线 + 项目级稳定性验证：
   - **外部交接接入（`CodeMan 接手`）**：支持从其他工具（Cursor Spec、手动开发等）中途切换到 CodeMan。提供已有文档路径和目标阶段，orchestrator 读取文档 + 扫描代码，将上下文摘要写入 DIRECTIVES.md，下游 Skill 零改动即可获取上下文。迭代完成后自动沉淀为 CodeMan 原生文档
   - **骨架模块前置补全**：骨架接入后首次版本迭代时，自动检测受影响的骨架模块（无 `mod-*.md`），在设计阶段读取代码生成技术文档，确保设计方案有充分的现状基线（orchestrator S1.5 + design Skill Step 0 骨架模式处理）

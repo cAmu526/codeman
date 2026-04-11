@@ -1,6 +1,9 @@
 # CodeMan 项目配置
 # 由 init.sh 自动生成，可手动修改
 
+# CodeMan 配置版本（框架升级时用于自动迁移，请勿手动修改）
+codeman_config_version: 2
+
 # 项目基本信息
 project:
   name: "{{项目名称}}"
@@ -238,8 +241,12 @@ tools:
 # 将第三方 Skill（如 Superpowers）作为子工具挂载到 CodeMan 工作流中
 # CodeMan 在执行到对应阶段和步骤时，自动 Read 并执行已注册的外部 Skill
 # 无需手动编辑，可通过自然语言配置（如"把 Superpowers 的 brainstorming 挂到需求分析之前"）
+#
+# hook 类型说明：
+#   - {阶段名}.before_step{N} / after_step{N}：在指定步骤前/后执行
+#   - {阶段名}.execution：替换该阶段的执行逻辑（由阶段 Skill 自行检测和托管）
 external_skills: []
-  # 示例：
+  # 示例 1：需求分析前执行头脑风暴
   # - name: "brainstorming"
   #   path: "~/.claude/skills/superpowers/skills/brainstorming/SKILL.md"
   #   hook: "requirements.before_step1"
@@ -247,3 +254,12 @@ external_skills: []
   #   output: "docs/superpowers/specs/"
   #   description: "Superpowers 协作式需求头脑风暴"
   #   confirm: true    # true（默认）= 每次执行前询问是否调用；false = 静默执行
+  #
+  # 示例 2：开发阶段使用 Superpowers 子代理执行
+  # - name: "subagent-driven-development"
+  #   path: "~/.claude/skills/superpowers/skills/subagent-driven-development/SKILL.md"
+  #   hook: "development.execution"
+  #   order: 1
+  #   output: ""
+  #   description: "Superpowers 逐任务子代理派遣 + 两阶段 Review（规格审查 → 代码质量审查）"
+  #   confirm: true    # 建议保持 true，首次使用时确认
