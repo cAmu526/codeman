@@ -847,6 +847,162 @@ PR 创建/更新         → 触发 Regression 标准回归
 
 ---
 
+## 项目级稳定性验证（三层验证）
+
+**时机：** L1-L5 各层级测试全部执行完毕后、通过用例抽样交叉验证完毕后。这是 Git squash merge 前的最后一道门禁。
+
+**为什么需要：** 单个功能点的测试通过只证明该功能正确。当新需求涉及架构变更或修改了共享模块时，可能引发跨模块的连锁问题，只有项目级验证才能发现。
+
+### V1: 构建验证
+
+**目标：** 确认项目能正常编译/构建，无类型错误、引用断裂或语法问题。
+
+**执行：** 根据 `config.yaml` 中的技术栈自动选择构建命令：
+
+```bash
+# TypeScript 项目
+tsc --noEmit
+
+# Go 项目
+go build ./...
+
+# Python 项目
+python -m py_compile {主入口文件}
+# 或 mypy（如有配置）
+
+# Node.js（有 build script）
+npm run build
+
+# Rust
+cargo check
+
+# Shell 脚本项目
+bash -n {主脚本}  # 语法检查
+shellcheck {主脚本}  # 如有 shellcheck
+```
+
+**通过标准：** 退出码 0，零错误零警告（或只有已知的非阻塞警告）。
+
+**失败处理：** 输出错误信息 → 进入修复闭环 → 修复后重新从 V1 开始。
+
+### V2: 已有测试套件全量执行
+
+**目标：** 确认本次改动没有破坏已有功能。
+
+**执行：** 运行项目中**所有**已有的测试，不只是本次新写的：
+
+```bash
+# 执行全量测试
+{项目测试命令}  # npm test / go test ./... / pytest / cargo test
+```
+
+**包含的测试：**
+- 之前迭代写的单元测试和集成测试
+- 本次新写的测试
+- 代码回归用例（`[regression-from-code]` 标记的用例）
+
+**通过标准：** 全部测试通过。
+
+**失败处理：** 
+- 之前的测试失败 → 本次改动破坏了老功能，进入修复闭环
+- 本次新测试失败 → 应该在 L1-L5 阶段已处理，如遗漏则修复
+- 回归用例失败 → 老功能被破坏，定位变更引入点并修复
+
+### V3: 项目级 Smoke 测试
+
+**目标：** 确认项目能正常启动运行，核心路径可达。
+
+**执行：** 根据项目类型自动选择验证方式：
+
+**Web 后端项目：**
+```bash
+# 1. 启动服务器（后台）
+{启动命令} &
+SERVER_PID=$!
+sleep 3  # 等待启动
+
+# 2. 请求 3-5 个核心接口
+curl -s -o /dev/null -w "%{http_code}" http://localhost:{端口}/health
+curl -s -o /dev/null -w "%{http_code}" http://localhost:{端口}/api/{核心接口1}
+curl -s -o /dev/null -w "%{http_code}" http://localhost:{端口}/api/{核心接口2}
+
+# 3. 关闭服务器
+kill $SERVER_PID
+```
+
+**Web 前端 / 全栈项目：**
+```typescript
+// 用 Playwright 验证
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto('http://localhost:{端口}');
+// 确认：不是白屏、无控制台错误、核心元素可见
+const errors = [];
+page.on('pageerror', err => errors.push(err.message));
+await page.waitForLoadState('networkidle');
+await page.screenshot({ path: 'tests/screenshots/v3-smoke.png' });
+expect(errors).toHaveLength(0);
+await browser.close();
+```
+
+**CLI 工具项目：**
+```bash
+# 1. help 命令正常输出
+{主命令} --help
+# 退出码 0 + 输出包含 usage 信息
+
+# 2. 典型参数组合
+{主命令} {典型参数1}  # 不报错
+{主命令} {典型参数2}  # 不报错
+```
+
+**库/SDK 项目：**
+```bash
+# 验证主入口可导入，核心 API 可调用
+node -e "const lib = require('{主入口}'); console.log(Object.keys(lib));"
+# 或 Python
+python -c "import {包名}; print(dir({包名}))"
+```
+
+**Shell 脚本项目：**
+```bash
+# 主脚本 help 正常
+bash {主脚本} --help
+# 关键子脚本语法检查
+bash -n {子脚本1}
+bash -n {子脚本2}
+```
+
+**通过标准：** 项目启动无崩溃，核心路径返回预期响应，无运行时错误。
+
+**失败处理：** 记录错误信息和截图 → 进入修复闭环。
+
+### 三层验证输出
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+项目级稳定性验证
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+V1 构建验证：{✅ / ❌}
+  命令：{执行的构建命令}
+  结果：{0 errors / 错误摘要}
+
+V2 已有测试套件：{✅ / ❌}
+  总数：{N} 个测试
+  通过：{N} | 失败：{N} | 跳过：{N}
+  {如有失败：失败列表}
+
+V3 项目级 Smoke：{✅ / ❌}
+  项目类型：{Web 后端 / 前端 / CLI / 库 / Shell}
+  验证内容：{具体做了什么}
+  结果：{正常 / 错误摘要}
+
+整体判定：{✅ 三层全过 → 继续 Git 合并 / ❌ 有失败 → 进入修复闭环}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
 ## 需求覆盖率追踪矩阵
 
 测试完成后，更新 `.codeman/docs/tests/INDEX.md` 中的覆盖矩阵。

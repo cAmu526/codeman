@@ -16,7 +16,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # ─────────────────────────────────────────
-# 检测运行环境（Cursor / Claude Code）
+# 检测运行环境（Cursor / Claude Code / Trae）
 # ─────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -27,6 +27,9 @@ if [[ "$SCRIPT_DIR" == *"/.claude/"* ]]; then
 elif [[ "$SCRIPT_DIR" == *"/.cursor/"* ]]; then
     ACTIVE_HOST="cursor"
     CODEMAN_DIR="${HOME}/.cursor/skills/.codeman"
+elif [[ "$SCRIPT_DIR" == *"/.trae/"* ]]; then
+    ACTIVE_HOST="trae"
+    CODEMAN_DIR="${HOME}/.trae/skills/.codeman"
 else
     # 开发调试：脚本从源码目录运行，检测已安装的环境
     CODEMAN_DIR="$SCRIPT_DIR"
@@ -34,8 +37,10 @@ else
         ACTIVE_HOST="claude-code"
     elif [ -d "${HOME}/.cursor/skills/.codeman" ]; then
         ACTIVE_HOST="cursor"
+    elif [ -d "${HOME}/.trae/skills/.codeman" ]; then
+        ACTIVE_HOST="trae"
     else
-        # 两者都未安装，默认 cursor（向后兼容）
+        # 均未安装，默认 cursor（向后兼容）
         ACTIVE_HOST="cursor"
     fi
 fi

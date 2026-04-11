@@ -26,7 +26,7 @@ RULES_GLOB=".codeman/rules/*.mdc"
 if [ -f "$OPENCODE_CONFIG" ]; then
     # 已有 opencode.json，用 python 安全更新
     python3 - "$OPENCODE_CONFIG" "$RULES_GLOB" << 'PYEOF'
-import sys, json, re
+import sys, json
 
 config_path = sys.argv[1]
 rules_glob = sys.argv[2]
@@ -34,9 +34,46 @@ rules_glob = sys.argv[2]
 with open(config_path, 'r') as f:
     content = f.read()
 
-# 移除 JSONC 注释
-clean = re.sub(r'//.*?\n|/\*.*?\*/', '', content, flags=re.DOTALL)
-config = json.loads(clean)
+# 先尝试直接解析（标准 JSON），失败再安全移除 JSONC 注释
+try:
+    config = json.loads(content)
+except json.JSONDecodeError:
+    # 状态机方式移除注释，跳过字符串内的 // 和 /* */
+    result = []
+    i = 0
+    in_string = False
+    while i < len(content):
+        c = content[i]
+        if in_string:
+            result.append(c)
+            if c == '\\' and i + 1 < len(content):
+                i += 1
+                result.append(content[i])
+            elif c == '"':
+                in_string = False
+        elif c == '"':
+            in_string = True
+            result.append(c)
+        elif c == '/' and i + 1 < len(content):
+            if content[i + 1] == '/':
+                # 行注释：跳到行尾
+                i += 2
+                while i < len(content) and content[i] != '\n':
+                    i += 1
+                continue
+            elif content[i + 1] == '*':
+                # 块注释：跳到 */
+                i += 2
+                while i + 1 < len(content) and not (content[i] == '*' and content[i + 1] == '/'):
+                    i += 1
+                i += 2
+                continue
+            else:
+                result.append(c)
+        else:
+            result.append(c)
+        i += 1
+    config = json.loads(''.join(result))
 
 if 'instructions' not in config:
     config['instructions'] = []

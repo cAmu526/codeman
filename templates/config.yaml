@@ -233,3 +233,17 @@ tools:
   midscene_config:
     model: "qwen-vl-max"  # Midscene.js 使用的视觉模型
     timeout: 30000        # 操作超时时间（ms）
+
+# 外部 Skill 注册
+# 将第三方 Skill（如 Superpowers）作为子工具挂载到 CodeMan 工作流中
+# CodeMan 在执行到对应阶段和步骤时，自动 Read 并执行已注册的外部 Skill
+# 无需手动编辑，可通过自然语言配置（如"把 Superpowers 的 brainstorming 挂到需求分析之前"）
+external_skills: []
+  # 示例：
+  # - name: "brainstorming"
+  #   path: "~/.claude/skills/superpowers/skills/brainstorming/SKILL.md"
+  #   hook: "requirements.before_step1"
+  #   order: 1
+  #   output: "docs/superpowers/specs/"
+  #   description: "Superpowers 协作式需求头脑风暴"
+  #   confirm: true    # true（默认）= 每次执行前询问是否调用；false = 静默执行

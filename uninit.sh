@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # CodeMan v1.0 项目反初始化脚本
 # 清理当前项目中的 CodeMan 配置（Rules、Skills、模板），保留 .codeman/docs/ 文档资产
-# 同时清理 Cursor 和 Claude Code 两个环境的项目级配置
+# 清理所有 IDE 的项目级配置：Cursor / Claude Code / OpenCode / Trae
 # 用法：在项目根目录执行 bash /path/to/codeman/uninit.sh
 
 set -e
@@ -30,6 +30,9 @@ fi
 HAS_CURSOR_RULES=false
 HAS_CLAUDE_RULES=false
 HAS_CLAUDE_MD_BLOCK=false
+HAS_OPENCODE_JSON=false
+HAS_OPENCODE_AGENTS_BLOCK=false
+HAS_TRAE_RULES=false
 
 if [ -d "${PROJECT_DIR}/.cursor/rules" ] && ls "${PROJECT_DIR}/.cursor/rules/codeman-"*.mdc 2>/dev/null | grep -q .; then
     HAS_CURSOR_RULES=true
@@ -42,6 +45,20 @@ fi
 CLAUDE_MD="${PROJECT_DIR}/.claude/CLAUDE.md"
 if [ -f "$CLAUDE_MD" ] && grep -q "<!-- CODEMAN START -->" "$CLAUDE_MD" 2>/dev/null; then
     HAS_CLAUDE_MD_BLOCK=true
+fi
+
+OPENCODE_JSON="${PROJECT_DIR}/opencode.json"
+if [ -f "$OPENCODE_JSON" ] && grep -q ".codeman/rules" "$OPENCODE_JSON" 2>/dev/null; then
+    HAS_OPENCODE_JSON=true
+fi
+
+AGENTS_MD="${PROJECT_DIR}/AGENTS.md"
+if [ -f "$AGENTS_MD" ] && grep -q "<!-- CODEMAN START -->" "$AGENTS_MD" 2>/dev/null; then
+    HAS_OPENCODE_AGENTS_BLOCK=true
+fi
+
+if [ -d "${PROJECT_DIR}/.trae/rules" ] && ls "${PROJECT_DIR}/.trae/rules/codeman-"*.md 2>/dev/null | grep -q .; then
+    HAS_TRAE_RULES=true
 fi
 
 echo -e "${YELLOW}即将执行以下操作：${NC}"
@@ -57,6 +74,15 @@ if [ "$HAS_CLAUDE_RULES" = true ]; then
 fi
 if [ "$HAS_CLAUDE_MD_BLOCK" = true ]; then
     echo "  7. 从 .claude/CLAUDE.md 移除 CodeMan 片段"
+fi
+if [ "$HAS_OPENCODE_JSON" = true ]; then
+    echo "  8. 从 opencode.json 移除 .codeman/rules 引用"
+fi
+if [ "$HAS_OPENCODE_AGENTS_BLOCK" = true ]; then
+    echo "  9. 从 AGENTS.md 移除 CodeMan 片段"
+fi
+if [ "$HAS_TRAE_RULES" = true ]; then
+    echo " 10. 删除 .trae/rules/ 中的 codeman-* 规范文件"
 fi
 echo ""
 echo -e "${GREEN}以下内容将被保留（文档是项目资产）：${NC}"
@@ -131,7 +157,74 @@ PYEOF
 fi
 
 # ─────────────────────────────────────────
-# 4. 删除 .codeman/ 中的非文档内容
+# 4. 清理 OpenCode 项目级配置
+# ─────────────────────────────────────────
+if [ "$HAS_OPENCODE_JSON" = true ]; then
+    echo -e "${GREEN}清理 opencode.json 中的 CodeMan 引用...${NC}"
+    python3 - "$OPENCODE_JSON" << 'PYEOF'
+import sys, json
+
+config_path = sys.argv[1]
+with open(config_path, 'r') as f:
+    config = json.load(f)
+
+if 'instructions' in config:
+    original = list(config['instructions'])
+    config['instructions'] = [x for x in config['instructions'] if '.codeman/rules' not in x]
+    if len(config['instructions']) < len(original):
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+            f.write('\n')
+        print('  已从 opencode.json 移除 .codeman/rules 引用')
+    else:
+        print('  opencode.json 中未找到 .codeman/rules 引用')
+PYEOF
+fi
+
+if [ "$HAS_OPENCODE_AGENTS_BLOCK" = true ]; then
+    echo -e "${GREEN}清理 AGENTS.md 中的 CodeMan 片段...${NC}"
+    python3 - "$AGENTS_MD" << 'PYEOF'
+import sys, re
+
+filepath = sys.argv[1]
+with open(filepath, 'r') as f:
+    content = f.read()
+
+new_content = re.sub(
+    r'\n*<!-- CODEMAN START -->.*?<!-- CODEMAN END -->\n*',
+    '\n',
+    content,
+    flags=re.DOTALL
+).strip()
+
+if new_content:
+    with open(filepath, 'w') as f:
+        f.write(new_content + '\n')
+    print(f"  已从 {filepath} 移除 CodeMan 片段")
+else:
+    import os
+    os.remove(filepath)
+    print(f"  已删除 {filepath}（文件已为空）")
+PYEOF
+fi
+
+# ─────────────────────────────────────────
+# 5. 清理 Trae 项目级规范
+# ─────────────────────────────────────────
+if [ "$HAS_TRAE_RULES" = true ]; then
+    echo -e "${GREEN}清理 Trae Rules...${NC}"
+    REMOVED=0
+    for md_file in "${PROJECT_DIR}/.trae/rules/codeman-"*.md; do
+        if [ -f "$md_file" ]; then
+            rm "$md_file"
+            REMOVED=$((REMOVED + 1))
+        fi
+    done
+    echo "  已删除 ${REMOVED} 个 codeman-*.md 规范文件"
+fi
+
+# ─────────────────────────────────────────
+# 6. 删除 .codeman/ 中的非文档内容
 # ─────────────────────────────────────────
 echo ""
 echo -e "${GREEN}清理 .codeman/ 配置...${NC}"

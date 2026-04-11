@@ -333,7 +333,7 @@ Review 发现 Critical 问题：
 如果发现同类问题 ≥ 2 次：
   → 草拟 Rule 内容
   → 向用户展示草拟的 Rule
-  → 用户确认后，调用自进化 Skill 创建 Rule
+  → 用户确认后，调度自进化 Skill（Read `{CODEMAN_HOME}/skills/evolve/SKILL.md` 并按其指令执行）创建 Rule
 ```
 
 ### Step 5: 输出 Review 结论

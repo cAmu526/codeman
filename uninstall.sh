@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CodeMan v1.0 全局卸载脚本
-# 同时清理 Cursor 和 Claude Code 两个环境的安装
+# 清理所有已安装环境：Cursor / Claude Code / OpenCode / Trae
 # 用法：bash /path/to/codeman/uninstall.sh
 
 set -e
@@ -15,6 +15,10 @@ CURSOR_INSTALL_DIR="${HOME}/.cursor/skills/.codeman"
 CURSOR_BOOTSTRAP="${HOME}/.cursor/rules/codeman-bootstrap.mdc"
 CLAUDE_INSTALL_DIR="${HOME}/.claude/skills/.codeman"
 CLAUDE_MD="${HOME}/.claude/CLAUDE.md"
+OPENCODE_CONFIG_DIR="${HOME}/.config/opencode"
+AGENTS_MD="${OPENCODE_CONFIG_DIR}/AGENTS.md"
+TRAE_INSTALL_DIR="${HOME}/.trae/skills/.codeman"
+TRAE_BOOTSTRAP="${HOME}/.trae/rules/codeman-bootstrap.md"
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -29,6 +33,9 @@ HAS_CURSOR_INSTALL=false
 HAS_CURSOR_BOOTSTRAP=false
 HAS_CLAUDE_INSTALL=false
 HAS_CLAUDE_MD_BLOCK=false
+HAS_OPENCODE_BLOCK=false
+HAS_TRAE_INSTALL=false
+HAS_TRAE_BOOTSTRAP=false
 
 [ -d "$CURSOR_INSTALL_DIR" ] && HAS_CURSOR_INSTALL=true
 [ -f "$CURSOR_BOOTSTRAP" ] && HAS_CURSOR_BOOTSTRAP=true
@@ -36,10 +43,17 @@ HAS_CLAUDE_MD_BLOCK=false
 if [ -f "$CLAUDE_MD" ] && grep -q "<!-- CODEMAN START -->" "$CLAUDE_MD" 2>/dev/null; then
     HAS_CLAUDE_MD_BLOCK=true
 fi
+if [ -f "$AGENTS_MD" ] && grep -q "<!-- CODEMAN START -->" "$AGENTS_MD" 2>/dev/null; then
+    HAS_OPENCODE_BLOCK=true
+fi
+[ -d "$TRAE_INSTALL_DIR" ] && HAS_TRAE_INSTALL=true
+[ -f "$TRAE_BOOTSTRAP" ] && HAS_TRAE_BOOTSTRAP=true
 
 # 检查是否有任何安装
 if [ "$HAS_CURSOR_INSTALL" = false ] && [ "$HAS_CURSOR_BOOTSTRAP" = false ] && \
-   [ "$HAS_CLAUDE_INSTALL" = false ] && [ "$HAS_CLAUDE_MD_BLOCK" = false ]; then
+   [ "$HAS_CLAUDE_INSTALL" = false ] && [ "$HAS_CLAUDE_MD_BLOCK" = false ] && \
+   [ "$HAS_OPENCODE_BLOCK" = false ] && \
+   [ "$HAS_TRAE_INSTALL" = false ] && [ "$HAS_TRAE_BOOTSTRAP" = false ]; then
     echo "未检测到 CodeMan 全局安装。"
     echo ""
     echo "无需卸载。"
@@ -62,6 +76,17 @@ if [ "$HAS_CLAUDE_INSTALL" = true ] || [ "$HAS_CLAUDE_MD_BLOCK" = true ]; then
     echo "  [Claude Code]"
     [ "$HAS_CLAUDE_INSTALL" = true ] && echo "    - 框架目录：${CLAUDE_INSTALL_DIR}"
     [ "$HAS_CLAUDE_MD_BLOCK" = true ] && echo "    - CLAUDE.md 中的 CodeMan 片段：${CLAUDE_MD}"
+fi
+
+if [ "$HAS_OPENCODE_BLOCK" = true ]; then
+    echo "  [OpenCode]"
+    echo "    - AGENTS.md 中的 CodeMan 片段：${AGENTS_MD}"
+fi
+
+if [ "$HAS_TRAE_INSTALL" = true ] || [ "$HAS_TRAE_BOOTSTRAP" = true ]; then
+    echo "  [Trae]"
+    [ "$HAS_TRAE_INSTALL" = true ] && echo "    - 框架目录：${TRAE_INSTALL_DIR}"
+    [ "$HAS_TRAE_BOOTSTRAP" = true ] && echo "    - Bootstrap rule：${TRAE_BOOTSTRAP}"
 fi
 
 echo ""
@@ -131,6 +156,54 @@ else:
     os.remove(filepath)
     print(f"  已删除 {filepath}（文件已为空）")
 PYEOF
+fi
+
+# 卸载 OpenCode
+if [ "$HAS_OPENCODE_BLOCK" = true ]; then
+    # 从 AGENTS.md 中移除 CodeMan 片段（保留其他内容）
+    python3 - "$AGENTS_MD" << 'PYEOF'
+import sys, re
+
+filepath = sys.argv[1]
+with open(filepath, 'r') as f:
+    content = f.read()
+
+new_content = re.sub(
+    r'\n*<!-- CODEMAN START -->.*?<!-- CODEMAN END -->\n*',
+    '\n',
+    content,
+    flags=re.DOTALL
+).strip()
+
+if new_content:
+    with open(filepath, 'w') as f:
+        f.write(new_content + '\n')
+    print(f"  已从 {filepath} 移除 CodeMan 片段（保留其他内容）")
+else:
+    import os
+    os.remove(filepath)
+    print(f"  已删除 {filepath}（文件已为空）")
+PYEOF
+fi
+
+# 卸载 Trae
+if [ "$HAS_TRAE_INSTALL" = true ]; then
+    # 清理 Trae 符号链接
+    for name in codeman-orchestrator codeman-requirements codeman-design codeman-development \
+            codeman-testing codeman-review codeman-fix codeman-deploy codeman-evolve; do
+        target="${HOME}/.trae/skills/${name}"
+        if [ -L "$target" ]; then
+            rm -f "$target"
+            echo -e "  ${GREEN}✅ 已删除符号链接 ${target}${NC}"
+        fi
+    done
+    rm -rf "$TRAE_INSTALL_DIR"
+    echo -e "  ${GREEN}✅ 已删除 ${TRAE_INSTALL_DIR}${NC}"
+fi
+
+if [ "$HAS_TRAE_BOOTSTRAP" = true ]; then
+    rm -f "$TRAE_BOOTSTRAP"
+    echo -e "  ${GREEN}✅ 已删除 ${TRAE_BOOTSTRAP}${NC}"
 fi
 
 # ─────────────────────────────────────────

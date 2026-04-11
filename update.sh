@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CodeMan v1.0 框架升级脚本
-# 将源码目录的最新版本同步到安装目录，同时支持 Cursor 和 Claude Code
+# 将源码目录的最新版本同步到安装目录，支持 Cursor / Claude Code / OpenCode / Trae
 # 用法：bash /path/to/codeman/update.sh
 #
 # 保护策略：
@@ -20,6 +20,13 @@ CLAUDE_INSTALL_DIR="${HOME}/.claude/skills/.codeman"
 CLAUDE_DIR="${HOME}/.claude"
 CLAUDE_MD="${CLAUDE_DIR}/CLAUDE.md"
 
+OPENCODE_CONFIG_DIR="${HOME}/.config/opencode"
+AGENTS_MD="${OPENCODE_CONFIG_DIR}/AGENTS.md"
+
+TRAE_INSTALL_DIR="${HOME}/.trae/skills/.codeman"
+TRAE_RULES_DIR="${HOME}/.trae/rules"
+TRAE_BOOTSTRAP="${TRAE_RULES_DIR}/codeman-bootstrap.md"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -37,11 +44,18 @@ echo ""
 # ─────────────────────────────────────────
 HAS_CURSOR=false
 HAS_CLAUDE=false
+HAS_OPENCODE=false
+HAS_TRAE=false
 
 [ -d "$CURSOR_INSTALL_DIR" ] && HAS_CURSOR=true
 [ -d "$CLAUDE_INSTALL_DIR" ] && HAS_CLAUDE=true
+# OpenCode 共用 Claude Code 安装目录，通过配置目录或命令判断
+if { command -v opencode &>/dev/null 2>&1 || [ -d "$OPENCODE_CONFIG_DIR" ]; } && [ -d "$CLAUDE_INSTALL_DIR" ]; then
+    HAS_OPENCODE=true
+fi
+[ -d "$TRAE_INSTALL_DIR" ] && HAS_TRAE=true
 
-if [ "$HAS_CURSOR" = false ] && [ "$HAS_CLAUDE" = false ]; then
+if [ "$HAS_CURSOR" = false ] && [ "$HAS_CLAUDE" = false ] && [ "$HAS_TRAE" = false ]; then
     echo -e "${YELLOW}未检测到已安装的 CodeMan。${NC}"
     echo "请先运行 install.sh 完成初次安装："
     echo "  bash ${CODEMAN_SRC}/install.sh"
@@ -51,6 +65,8 @@ fi
 echo "源码目录：${CODEMAN_SRC}"
 [ "$HAS_CURSOR" = true ] && echo "Cursor 安装目录：${CURSOR_INSTALL_DIR}"
 [ "$HAS_CLAUDE" = true ] && echo "Claude Code 安装目录：${CLAUDE_INSTALL_DIR}"
+[ "$HAS_OPENCODE" = true ] && echo "OpenCode 配置目录：${OPENCODE_CONFIG_DIR}"
+[ "$HAS_TRAE" = true ] && echo "Trae 安装目录：${TRAE_INSTALL_DIR}"
 echo ""
 
 # ─────────────────────────────────────────
@@ -73,6 +89,22 @@ if [ "$HAS_CLAUDE" = true ]; then
         "${CODEMAN_SRC}/" "${CLAUDE_INSTALL_DIR}/"
     echo "  ✅ [Claude Code] Skills、rules、templates 已全量更新"
     bash "${CODEMAN_SRC}/adapters/claude-code/link-skills.sh" "${CLAUDE_INSTALL_DIR}"
+fi
+
+if [ "$HAS_OPENCODE" = true ]; then
+    # OpenCode 共用 Claude Code 安装目录，框架文件已由上方同步
+    # 确保符号链接存在
+    bash "${CODEMAN_SRC}/adapters/claude-code/link-skills.sh" "${CLAUDE_INSTALL_DIR}"
+    echo "  ✅ [OpenCode] 框架文件已随 Claude Code 同步"
+fi
+
+if [ "$HAS_TRAE" = true ]; then
+    rsync -a --delete \
+        --exclude='.git' \
+        --exclude='*.bak' \
+        "${CODEMAN_SRC}/" "${TRAE_INSTALL_DIR}/"
+    echo "  ✅ [Trae] Skills、rules、templates 已全量更新"
+    bash "${CODEMAN_SRC}/adapters/trae/link-skills.sh" "${TRAE_INSTALL_DIR}"
 fi
 
 # ─────────────────────────────────────────
@@ -174,6 +206,17 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 - `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
 - `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
 - `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+- `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
+
+## 阶段衔接规则（重要）
+
+CodeMan 的工作流是分阶段执行的。**每个 Skill 完成后，必须按该 Skill 文件末尾"完成后"章节的指示操作**：
+
+1. 向用户展示完成摘要和下一步提示
+2. 用户确认后，通过 `Read {Skill路径}` 加载并执行下一个 Skill
+3. **严禁**在阶段完成后自行总结然后停下来等用户输入命令
+4. **严禁**编造不存在的命令（如"CodeMan 开始测试"、"CodeMan 进入编码"等）
+5. 如果不确定下一步是什么，说 `CodeMan 继续` 让 orchestrator 根据 STATUS.md 判断
 
 ## Skills 路径
 
@@ -200,13 +243,21 @@ Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
 <!-- CODEMAN END -->'
 
     if [ -f "$CLAUDE_MD" ] && grep -q "<!-- CODEMAN START -->" "$CLAUDE_MD" 2>/dev/null; then
-        python3 -c "
-import re
-content = open('${CLAUDE_MD}').read()
-block = '''${CODEMAN_BLOCK}'''
-new_content = re.sub(r'<!-- CODEMAN START -->.*?<!-- CODEMAN END -->', block, content, flags=re.DOTALL)
-open('${CLAUDE_MD}', 'w').write(new_content)
-"
+        python3 - "$CLAUDE_MD" "$CODEMAN_BLOCK" << 'PYEOF'
+import sys, re
+filepath = sys.argv[1]
+new_block = sys.argv[2]
+with open(filepath, 'r') as f:
+    content = f.read()
+new_content = re.sub(
+    r'<!-- CODEMAN START -->.*?<!-- CODEMAN END -->',
+    lambda m: new_block,
+    content,
+    flags=re.DOTALL
+)
+with open(filepath, 'w') as f:
+    f.write(new_content)
+PYEOF
         echo "  ✅ [Claude Code] ~/.claude/CLAUDE.md 已更新"
     elif [ -f "$CLAUDE_MD" ]; then
         echo "" >> "$CLAUDE_MD"
@@ -219,11 +270,221 @@ open('${CLAUDE_MD}', 'w').write(new_content)
     fi
 fi
 
+if [ "$HAS_OPENCODE" = true ]; then
+    # 更新 AGENTS.md 中的 CodeMan 片段
+    CODEMAN_BLOCK_OPENCODE='<!-- CODEMAN START -->
+# CodeMan 已安装
+
+你已安装 CodeMan v1.0 全流程开发工作流框架。
+
+## 核心规则
+
+当用户说以下任意命令时，你必须立即读取并执行 orchestrator Skill：
+
+```
+Read ~/.claude/skills/.codeman/skills/orchestrator/SKILL.md
+```
+
+**触发命令列表（只有以下命令，不要编造其他命令）：**
+- `CodeMan 初始化` — 在当前项目初始化 CodeMan（新项目或旧项目接入）
+- `CodeMan 开始开发` — 启动完整开发流程
+- `CodeMan 新需求：[描述]` — 版本迭代
+- `CodeMan 继续` — 断点续做
+- `CodeMan 修复：[描述]` — 轻量修复
+- `CodeMan 状态` — 查看当前进度
+- `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
+- `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
+- `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+- `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
+
+## 阶段衔接规则（重要）
+
+CodeMan 的工作流是分阶段执行的。**每个 Skill 完成后，必须按该 Skill 文件末尾"完成后"章节的指示操作**：
+
+1. 向用户展示完成摘要和下一步提示
+2. 用户确认后，通过 `Read {Skill路径}` 加载并执行下一个 Skill
+3. **严禁**在阶段完成后自行总结然后停下来等用户输入命令
+4. **严禁**编造不存在的命令（如"CodeMan 开始测试"、"CodeMan 进入编码"等）
+5. 如果不确定下一步是什么，说 `CodeMan 继续` 让 orchestrator 根据 STATUS.md 判断
+
+## Skills 路径
+
+OpenCode 通过 Claude Code 兼容层读取 `~/.claude/skills/<name>/SKILL.md`。安装脚本已创建 `~/.claude/skills/codeman-*` 符号链接。
+
+| Skill | 名称 |
+|-------|------|
+| orchestrator（入口） | codeman-orchestrator |
+| requirements | codeman-requirements |
+| design | codeman-design |
+| development | codeman-development |
+| testing | codeman-testing |
+| review | codeman-review |
+| fix | codeman-fix |
+| deploy | codeman-deploy |
+| evolve | codeman-evolve |
+
+## 重要说明
+
+- orchestrator 是唯一入口，所有场景都从它开始
+- 不要直接调用其他 Skill，由 orchestrator 按流程调度
+- 项目文档存放在项目的 `.codeman/docs/` 目录，跟着项目走
+- 每个 Skill 执行过程中必须严格遵循其 SKILL.md 的所有步骤，包括更新 STATUS.md
+<!-- CODEMAN END -->'
+
+    if [ -f "$AGENTS_MD" ]; then
+        if grep -q "<!-- CODEMAN START -->" "$AGENTS_MD" 2>/dev/null; then
+            python3 - "$AGENTS_MD" "$CODEMAN_BLOCK_OPENCODE" << 'PYEOF'
+import sys, re
+filepath = sys.argv[1]
+new_block = sys.argv[2]
+with open(filepath, 'r') as f:
+    content = f.read()
+new_content = re.sub(
+    r'<!-- CODEMAN START -->.*?<!-- CODEMAN END -->',
+    lambda m: new_block,
+    content,
+    flags=re.DOTALL
+)
+with open(filepath, 'w') as f:
+    f.write(new_content)
+PYEOF
+            echo "  ✅ [OpenCode] AGENTS.md 已更新"
+        else
+            echo "" >> "$AGENTS_MD"
+            echo "$CODEMAN_BLOCK_OPENCODE" >> "$AGENTS_MD"
+            echo "  ✅ [OpenCode] 已追加 CodeMan 片段到 AGENTS.md"
+        fi
+    else
+        mkdir -p "${OPENCODE_CONFIG_DIR}"
+        echo "$CODEMAN_BLOCK_OPENCODE" > "$AGENTS_MD"
+        echo "  ✅ [OpenCode] 已创建 ${AGENTS_MD}"
+    fi
+fi
+
+if [ "$HAS_TRAE" = true ]; then
+    mkdir -p "${TRAE_RULES_DIR}"
+    cat > "${TRAE_BOOTSTRAP}" << 'BOOTSTRAP_EOF'
+---
+description: "CodeMan 工作流框架。当用户提到 CodeMan、开始开发、初始化、新需求、继续、修复、状态、概览等关键词时自动加载。"
+alwaysApply: true
+---
+
+# CodeMan 已安装
+
+你已安装 CodeMan v1.0 全流程开发工作流框架。
+
+## 核心规则
+
+当用户说以下任意命令时，你必须立即读取并执行 orchestrator Skill：
+
+```
+Read ~/.trae/skills/.codeman/skills/orchestrator/SKILL.md
+```
+
+**触发命令列表（只有以下命令，不要编造其他命令）：**
+- `CodeMan 初始化` — 在当前项目初始化 CodeMan（新项目或旧项目接入）
+- `CodeMan 开始开发` — 启动完整开发流程
+- `CodeMan 新需求：[描述]` — 版本迭代
+- `CodeMan 继续` — 断点续做
+- `CodeMan 修复：[描述]` — 轻量修复
+- `CodeMan 状态` — 查看当前进度
+- `CodeMan 概览` — 生成/更新项目概览文档（面向新成员）
+- `CodeMan 同步` — 同步文档（同事改了代码后补全缺失文档）
+- `CodeMan 迭代：[内容]` — 批量迭代（混合新功能 + Bug 修复 + 优化，自动分类排序）
+- `CodeMan 添加规则：[描述]` — 创建项目级编码规范（生成 .codeman/rules/proj-*.mdc 并同步到 IDE）
+
+## 阶段衔接规则（重要）
+
+CodeMan 的工作流是分阶段执行的。**每个 Skill 完成后，必须按该 Skill 文件末尾"完成后"章节的指示操作**：
+
+1. 向用户展示完成摘要和下一步提示
+2. 用户确认后，通过 `Read {Skill路径}` 加载并执行下一个 Skill
+3. **严禁**在阶段完成后自行总结然后停下来等用户输入命令
+4. **严禁**编造不存在的命令（如"CodeMan 开始测试"、"CodeMan 进入编码"等）
+5. 如果不确定下一步是什么，说 `CodeMan 继续` 让 orchestrator 根据 STATUS.md 判断
+
+## Skills 路径
+
+所有 Skills 位于 `~/.trae/skills/.codeman/skills/`：
+
+| Skill | 路径 |
+|-------|------|
+| orchestrator（入口） | `~/.trae/skills/.codeman/skills/orchestrator/SKILL.md` |
+| requirements | `~/.trae/skills/.codeman/skills/requirements/SKILL.md` |
+| design | `~/.trae/skills/.codeman/skills/design/SKILL.md` |
+| development | `~/.trae/skills/.codeman/skills/development/SKILL.md` |
+| testing | `~/.trae/skills/.codeman/skills/testing/SKILL.md` |
+| review | `~/.trae/skills/.codeman/skills/review/SKILL.md` |
+| fix | `~/.trae/skills/.codeman/skills/fix/SKILL.md` |
+| deploy | `~/.trae/skills/.codeman/skills/deploy/SKILL.md` |
+| evolve | `~/.trae/skills/.codeman/skills/evolve/SKILL.md` |
+
+## 重要说明
+
+- orchestrator 是唯一入口，所有场景都从它开始
+- 不要直接调用其他 Skill，由 orchestrator 按流程调度
+- 项目文档存放在项目的 `.codeman/docs/` 目录，跟着项目走
+- 每个 Skill 执行过程中必须严格遵循其 SKILL.md 的所有步骤，包括更新 STATUS.md
+BOOTSTRAP_EOF
+    echo "  ✅ [Trae] codeman-bootstrap.md 已更新"
+fi
+
 # ─────────────────────────────────────────
-# Step 3: 验证关键文件
+# Step 3: 更新第三方 Skills
 # ─────────────────────────────────────────
 echo ""
-echo -e "${GREEN}Step 3: 验证关键文件...${NC}"
+echo -e "${GREEN}Step 3: 检查第三方 Skills 更新...${NC}"
+
+EXT_UPDATED=false
+# 从 Claude Code 注册表读取（Cursor/Trae 同步更新）
+REGISTRY_FILE=""
+[ "$HAS_CLAUDE" = true ] && REGISTRY_FILE="${CLAUDE_INSTALL_DIR}/external-skills-registry.json"
+[ -z "$REGISTRY_FILE" ] && [ "$HAS_CURSOR" = true ] && REGISTRY_FILE="${CURSOR_INSTALL_DIR}/external-skills-registry.json"
+
+if [ -n "$REGISTRY_FILE" ] && [ -f "$REGISTRY_FILE" ]; then
+    # 提取已注册的 skill 名称列表
+    EXT_NAMES=$(python3 - "$REGISTRY_FILE" << 'PYEOF' 2>/dev/null
+import sys, json
+with open(sys.argv[1], 'r') as f:
+    registry = json.load(f)
+for entry in registry:
+    print(entry['name'])
+PYEOF
+)
+
+    if [ -n "$EXT_NAMES" ]; then
+        while IFS= read -r ext_name; do
+            # 尝试在各 IDE 的 skills 目录下更新
+            UPDATED_ONE=false
+            if [ "$HAS_CLAUDE" = true ] && [ -d "${HOME}/.claude/skills/${ext_name}/.git" ]; then
+                echo -n "  ${ext_name}..."
+                if git -C "${HOME}/.claude/skills/${ext_name}" pull --quiet 2>/dev/null; then
+                    echo -e " ${GREEN}✅ 已更新${NC}"
+                    UPDATED_ONE=true
+                else
+                    echo -e " ${YELLOW}⚠️ 更新失败（网络问题？）${NC}"
+                fi
+            fi
+            if [ "$HAS_CURSOR" = true ] && [ -d "${HOME}/.cursor/skills/${ext_name}/.git" ]; then
+                git -C "${HOME}/.cursor/skills/${ext_name}" pull --quiet 2>/dev/null
+            fi
+            if [ "$HAS_TRAE" = true ] && [ -d "${HOME}/.trae/skills/${ext_name}/.git" ]; then
+                git -C "${HOME}/.trae/skills/${ext_name}" pull --quiet 2>/dev/null
+            fi
+            [ "$UPDATED_ONE" = true ] && EXT_UPDATED=true
+        done <<< "$EXT_NAMES"
+    fi
+fi
+
+if [ "$EXT_UPDATED" = false ]; then
+    echo "  无已注册的第三方 Skills 或无需更新"
+fi
+
+# ─────────────────────────────────────────
+# Step 4: 验证关键文件
+# ─────────────────────────────────────────
+echo ""
+echo -e "${GREEN}Step 4: 验证关键文件...${NC}"
 
 ALL_OK=true
 SKILLS=("orchestrator" "requirements" "design" "development" "testing" "review" "fix" "deploy" "evolve")
@@ -260,6 +521,35 @@ if [ "$HAS_CLAUDE" = true ]; then
     fi
 fi
 
+if [ "$HAS_OPENCODE" = true ]; then
+    echo "  [OpenCode]"
+    if [ -f "$AGENTS_MD" ] && grep -q "<!-- CODEMAN START -->" "$AGENTS_MD" 2>/dev/null; then
+        echo -e "    ${GREEN}✅ AGENTS.md（bootstrap 片段）${NC}"
+    else
+        echo -e "    ${RED}❌ AGENTS.md（bootstrap 片段缺失）${NC}"
+        ALL_OK=false
+    fi
+fi
+
+if [ "$HAS_TRAE" = true ]; then
+    echo "  [Trae]"
+    for skill in "${SKILLS[@]}"; do
+        skill_path="${TRAE_INSTALL_DIR}/skills/${skill}/SKILL.md"
+        if [ -f "$skill_path" ]; then
+            echo -e "    ${GREEN}✅ ${skill}${NC}"
+        else
+            echo -e "    ${RED}❌ ${skill}（文件缺失）${NC}"
+            ALL_OK=false
+        fi
+    done
+    if [ -f "$TRAE_BOOTSTRAP" ]; then
+        echo -e "    ${GREEN}✅ codeman-bootstrap.md${NC}"
+    else
+        echo -e "    ${RED}❌ codeman-bootstrap.md（缺失）${NC}"
+        ALL_OK=false
+    fi
+fi
+
 # ─────────────────────────────────────────
 # 完成
 # ─────────────────────────────────────────
@@ -277,6 +567,8 @@ echo ""
 echo -e "${YELLOW}说明：${NC}"
 [ "$HAS_CURSOR" = true ] && echo "  - ~/.cursor/skills/.codeman/ 已同步最新框架"
 [ "$HAS_CLAUDE" = true ] && echo "  - ~/.claude/skills/.codeman/ 已同步最新框架"
+[ "$HAS_OPENCODE" = true ] && echo "  - ${AGENTS_MD} bootstrap 已更新"
+[ "$HAS_TRAE" = true ] && echo "  - ~/.trae/skills/.codeman/ 已同步最新框架"
 echo "  - 各项目 .codeman/docs/ 中的文档未被触碰"
 echo "  - 各项目 proj-*.mdc 自定义规范未被覆盖"
 [ "$HAS_CURSOR" = true ] && echo "  - 重启 Cursor 让变更生效"
