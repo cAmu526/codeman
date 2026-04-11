@@ -2,7 +2,7 @@
 # 由 init.sh 自动生成，可手动修改
 
 # CodeMan 配置版本（框架升级时用于自动迁移，请勿手动修改）
-codeman_config_version: 2
+codeman_config_version: 3
 
 # 项目基本信息
 project:

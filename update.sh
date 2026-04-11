@@ -503,6 +503,45 @@ if [ "$EXT_UPDATED" = false ]; then
     echo "  无已注册的第三方 Skills 或无需更新"
 fi
 
+# 补全 registry 中缺失的 entry（如 superpowers 新增了 subagent-driven-development）
+if [ -n "$REGISTRY_FILE" ] && [ -f "$REGISTRY_FILE" ]; then
+    REGISTRY_PATCHED=false
+
+    # superpowers 已安装但 registry 缺 subagent-driven-development
+    if echo "$EXT_NAMES" | grep -q "^superpowers$" 2>/dev/null; then
+        if ! grep -q "subagent-driven-development" "$REGISTRY_FILE" 2>/dev/null; then
+            python3 - "$REGISTRY_FILE" << 'PYEOF'
+import sys, json
+filepath = sys.argv[1]
+with open(filepath, 'r') as f:
+    registry = json.load(f)
+registry.append({
+    "name": "superpowers",
+    "source": "https://github.com/obra/superpowers",
+    "skill_path": "skills/subagent-driven-development/SKILL.md",
+    "suggested_hook": "development.execution",
+    "suggested_output": "",
+    "description": "Superpowers 逐任务子代理派遣 + 两阶段 Review"
+})
+with open(filepath, 'w') as f:
+    json.dump(registry, f, indent=2, ensure_ascii=False)
+PYEOF
+            echo -e "  ${GREEN}✅ 注册表已补全：superpowers/subagent-driven-development${NC}"
+            REGISTRY_PATCHED=true
+        fi
+    fi
+
+    # 同步到其他 IDE 的注册表
+    if [ "$REGISTRY_PATCHED" = true ]; then
+        if [ "$HAS_CURSOR" = true ] && [ -f "${CURSOR_INSTALL_DIR}/external-skills-registry.json" ]; then
+            cp "$REGISTRY_FILE" "${CURSOR_INSTALL_DIR}/external-skills-registry.json"
+        fi
+        if [ "$HAS_TRAE" = true ] && [ -f "${TRAE_INSTALL_DIR}/external-skills-registry.json" ]; then
+            cp "$REGISTRY_FILE" "${TRAE_INSTALL_DIR}/external-skills-registry.json"
+        fi
+    fi
+fi
+
 # ─────────────────────────────────────────
 # Step 4: 验证关键文件
 # ─────────────────────────────────────────

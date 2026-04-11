@@ -611,7 +611,7 @@ echo ""
 echo "CodeMan 支持挂载第三方 Skills 增强工作流。"
 echo "以下是推荐的 Skills（安装后可在项目中按需启用）："
 echo ""
-echo "  1) superpowers       — 协作式头脑风暴 + 浏览器可视化 mockup"
+echo "  1) superpowers       — 协作式头脑风暴 + 子代理派遣开发（含 2 个 Skills）"
 echo -e "     ${BLUE}https://github.com/obra/superpowers${NC}"
 echo "  2) wireframe         — HTML 线框图生成（5 套 UX 方案）"
 echo -e "     ${BLUE}https://github.com/Magdoub/claude-wireframe-skill${NC}"
@@ -806,6 +806,20 @@ if [ ${#EXT_INSTALL_LIST[@]} -gt 0 ]; then
   }"
         fi
     done
+
+    # superpowers 包含多个 Skills，自动追加 subagent-driven-development
+    if echo "$REGISTRY_ENTRIES" | grep -q '"superpowers"'; then
+        REGISTRY_ENTRIES="${REGISTRY_ENTRIES},
+  {
+    \"name\": \"superpowers\",
+    \"source\": \"https://github.com/obra/superpowers\",
+    \"skill_path\": \"skills/subagent-driven-development/SKILL.md\",
+    \"suggested_hook\": \"development.execution\",
+    \"suggested_output\": \"\",
+    \"description\": \"Superpowers 逐任务子代理派遣 + 两阶段 Review\"
+  }"
+        echo -e "  ${GREEN}✅ superpowers 已自动注册 brainstorming + subagent-driven-development${NC}"
+    fi
 
     if [ -n "$REGISTRY_ENTRIES" ]; then
         EXT_REGISTRY="[${REGISTRY_ENTRIES}

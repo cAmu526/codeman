@@ -917,6 +917,7 @@ codeman/
   - **项目配置自动迁移**：config.yaml 引入 `codeman_config_version` 版本号，框架升级后首次运行 CodeMan 时自动检测并追加缺失配置段（只追加不覆盖），同时静默更新全局规范文件（global-*.mdc）
   - **`CodeMan 升级` 命令**：一键完成框架升级（git pull + update.sh）+ 当前项目配置迁移（config.yaml 版本化追加）+ 全局规范文件更新
   - **curl 一行安装**：支持 `curl -fsSL https://raw.githubusercontent.com/cAmu526/codeman/main/install.sh | bash` 远程安装和升级，自动 clone 到 `~/.codeman/`
+  - **第三方 Skills 配置同步**：`CodeMan 升级` 时自动对比全局注册表与项目 config，发现新增推荐 Skills 后提示用户安装/配置；superpowers 安装时自动注册 brainstorming + subagent-driven-development 两个 Skills
 - **v1.1** — 2026-04-10：外部交接接入 + 骨架无缝迭代 + 代码回归基线 + 项目级稳定性验证：
   - **外部交接接入（`CodeMan 接手`）**：支持从其他工具（Cursor Spec、手动开发等）中途切换到 CodeMan。提供已有文档路径和目标阶段，orchestrator 读取文档 + 扫描代码，将上下文摘要写入 DIRECTIVES.md，下游 Skill 零改动即可获取上下文。迭代完成后自动沉淀为 CodeMan 原生文档
   - **骨架模块前置补全**：骨架接入后首次版本迭代时，自动检测受影响的骨架模块（无 `mod-*.md`），在设计阶段读取代码生成技术文档，确保设计方案有充分的现状基线（orchestrator S1.5 + design Skill Step 0 骨架模式处理）

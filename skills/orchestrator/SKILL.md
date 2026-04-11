@@ -1554,10 +1554,10 @@ bash "$SOURCE_PATH/update.sh"
 
 读取当前项目 `.codeman/config.yaml` 的 `codeman_config_version` 字段：
 
-- 等于当前版本（2）→ 输出 "✅ 项目配置已是最新版本，无需迁移"
+- 等于当前版本（3）→ 输出 "✅ 项目配置已是最新版本，无需迁移"
 - 不存在或 < 当前版本 → 执行迁移：
 
-**当前配置版本：2**
+**当前配置版本：3**
 
 **迁移表：**
 
@@ -1565,6 +1565,7 @@ bash "$SOURCE_PATH/update.sh"
 |-------|-------|---------|-------|
 | 无/1 | 2 | `codeman_config_version` | `2` |
 | 无/1 | 2 | `external_skills` | `[]`（附注释示例） |
+| 2 | 3 | （无新配置项，仅第三方 Skills 配置同步，见 Step 3.5） | — |
 
 **迁移流程：**
 1. 展示将追加的配置段，询问用户确认
@@ -1577,6 +1578,49 @@ bash "$SOURCE_PATH/update.sh"
 
 静默覆盖，不需要用户确认（纯框架内容，用户自定义规范在 `proj-*.mdc` 中不受影响）。
 
+### Step 3.5: 第三方 Skills 配置同步
+
+读取 `{CODEMAN_HOME}/external-skills-registry.json`（全局注册表，记录本机已安装的第三方 Skills）。
+
+对比注册表与当前项目 `.codeman/config.yaml` 的 `external_skills` 列表：
+
+- 以注册表中每个 entry 的 `skill_path` 为匹配键（因为同一个仓库可能有多个 Skills，如 superpowers 包含 brainstorming 和 subagent-driven-development）
+- 找出注册表中有但项目 config 中没有的 entry → 这些是**新增的推荐 Skills**
+
+**对于每个新增 entry：**
+
+检查对应的 Skill 文件是否存在（根据当前宿主环境拼接路径，如 `~/.claude/skills/{name}/{skill_path}`）：
+
+1. **已安装（文件存在）** → 展示 entry 信息，询问用户是否添加到项目配置
+2. **未安装（文件不存在）** → 展示 entry 信息，询问用户是否安装（git clone）并添加到项目配置
+
+**展示格式：**
+
+```
+检测到新增的推荐第三方 Skills：
+
+  1. [已安装] subagent-driven-development
+     说明：Superpowers 逐任务子代理派遣 + 两阶段 Review
+     挂载点：development.execution（开发阶段执行托管）
+
+是否添加到当前项目配置？[Y/n]
+```
+
+用户确认后，将对应 entry 转换为 `external_skills` 格式追加到 config.yaml：
+
+```yaml
+  - name: "subagent-driven-development"
+    path: "{宿主环境对应的 skills 路径}/{name}/{skill_path}"
+    hook: "{suggested_hook}"
+    order: 1
+    output: "{suggested_output}"
+    description: "{description}"
+    confirm: true
+```
+
+- 无新增 entry → 输出 "✅ 第三方 Skills 配置已是最新"
+- 注册表不存在 → 跳过此步骤
+
 ### Step 4: 展示升级摘要
 
 ```
@@ -1586,5 +1630,6 @@ CodeMan 升级完成
 框架文件：✅ 已同步最新版本
 项目配置：✅ 已迁移到 v{N}（或"已是最新"）
 全局规范：✅ 已更新 {N} 个文件
+第三方 Skills：✅ 新增 {N} 个（或"已是最新"）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
