@@ -1550,6 +1550,14 @@ bash "$SOURCE_PATH/update.sh"
 
 展示 update.sh 的输出结果。
 
+**重要：重新加载升级流程。** update.sh 已将最新版本的 orchestrator SKILL.md 同步到安装目录。为确保后续步骤使用最新的迁移表和逻辑，必须重新读取：
+
+```
+Read {CODEMAN_HOME}/skills/orchestrator/SKILL.md
+```
+
+然后跳转到该文件中「CodeMan 升级流程」的 **Step 2** 继续执行（不要重复 Step 1）。
+
 ### Step 2: 当前项目配置迁移
 
 读取当前项目 `.codeman/config.yaml` 的 `codeman_config_version` 字段：
