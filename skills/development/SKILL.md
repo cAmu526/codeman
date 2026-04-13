@@ -902,6 +902,8 @@ Refs: F{ID}"
 
 **⚠️ 绝对禁止执行 `git push`。推送操作必须由用户手动完成。**
 
+**⚠️ 绝对禁止在 commit message 末尾追加 `Co-Authored-By: Claude ...` 行**（详见 orchestrator commit 规范）。即使 AI 助手默认模板包含此行，也必须移除。
+
 ### Step 8.5: 领域规则审查（毕业 / 升级 / 新增）
 
 模块编码完成并通过 Review 后，审查与本模块相关的领域规则：

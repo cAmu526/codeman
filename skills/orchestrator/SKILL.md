@@ -1278,6 +1278,10 @@ CodeMan 进度
 - message 必须遵循 Conventional Commits 格式：`type(scope): description`
 - type 包含：feat / fix / docs / style / refactor / test / chore
 - body 说明变更原因，footer 引用 PRD 功能点 ID
+- ❌ **禁止**在 commit message 末尾追加 `Co-Authored-By: Claude ...` / `Co-Authored-By: <AI 助手>` 等行
+  - Why: 用户不希望 GitHub Contributors 列表出现 AI 助手记录
+  - 即使 AI 助手的系统默认 commit 模板包含此行，执行 codeman 流程时也必须移除
+  - 适用于所有 codeman 触发的 commit（development / fix / testing / 任何场景）
 
 ---
 

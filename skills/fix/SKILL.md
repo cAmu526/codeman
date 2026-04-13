@@ -331,6 +331,8 @@ git branch -d {fix 分支}
 
 **⚠️ 绝对禁止执行 `git push`。推送操作必须由用户手动完成。**
 
+**⚠️ 绝对禁止在 commit message 末尾追加 `Co-Authored-By: Claude ...` 行**（详见 orchestrator commit 规范）。即使 AI 助手默认模板包含此行，也必须移除。
+
 ---
 
 ## 不确定即停（遵守 orchestrator 全局硬规则）

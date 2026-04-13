@@ -610,6 +610,8 @@ git commit -m "{合并 commit message}"
 git branch -d {feature 分支}    # 如 config.yaml 的 git.delete_branch_after_merge 为 true
 ```
 
+**⚠️ 绝对禁止在 commit message 末尾追加 `Co-Authored-By: Claude ...` 行**（详见 orchestrator commit 规范）。即使 AI 助手默认模板包含此行，也必须移除。
+
 然后输出测试报告：
 ```
 测试验证完成！

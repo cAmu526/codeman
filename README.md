@@ -563,7 +563,7 @@ opencode.json                   ← 配置 rules 引用（OpenCode）
 初始化时会根据检测到的技术栈自动安装对应规范：
 
 **全局规范（所有项目）：**
-- Git 提交规范（Conventional Commits、分支命名、禁止直推 main）
+- Git 提交规范（Conventional Commits、分支命名、禁止直推 main、禁止 `Co-Authored-By: Claude ...` 等 AI 署名行）
 - 通用代码质量（命名、函数设计、错误处理）
 - 安全基线（密钥管理、输入校验、XSS 防护）
 
