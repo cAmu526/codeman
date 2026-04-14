@@ -239,24 +239,46 @@ Skill 名称与路径映射表：
 
 > 示例：调度"需求分析 Skill"时，实际执行 `Read {CODEMAN_HOME}/skills/requirements/SKILL.md` 并按其内容执行。
 > CODEMAN_HOME 的值见本文件顶部「宿主环境说明」。
+>
+> ⚠️ **不可省略 Read**：即使主 Agent 已有该 Skill 的记忆，每次进入新阶段仍必须重新 Read 对应 SKILL.md。
+> 凭记忆直接作业会绕过 hook 机制和关键流程步骤，导致外部 Skills 失效、测试不完整、文档不落地。
 
-**外部 Skill 调度机制：**
+**外部 Skill 调度机制（阶段边界 Hook）：**
 
-读取 `.codeman/config.yaml` 的 `external_skills` 配置。如果配置不为空，在调度内部 Skill 时遵循以下规则：
+orchestrator 在**调度每个阶段 Skill 前后**，自己检查 `config.yaml` 的 `external_skills` 并执行匹配的 hook。
+hook 检查由 orchestrator 统一执行，不下放到各阶段 Skill 内部（execution 类型除外）。
 
-1. **进入任何阶段的任何 Step 前后**，检查是否有外部 Skill 挂载在当前位置
-   - 匹配规则：`hook` 字段格式为 `{阶段名}.before_step{N}`、`{阶段名}.after_step{N}` 或 `{阶段名}.execution`（替换该阶段的执行逻辑，由阶段 Skill 自行检测和处理）
-   - 阶段名对应内部 Skill 目录名：requirements / design / development / testing / review / fix / deploy
-2. **匹配到时**，按 `order` 升序依次执行：
-   - 检查 `path` 文件是否存在。不存在则跳过并提示用户（"外部 Skill {name} 未找到，已跳过"）
-   - 检查 `confirm` 字段（默认 `true`）：
-     - `confirm: true`：询问用户是否执行（"检测到外部 Skill「{name}」— {description}，是否执行？（y/跳过）"），用户跳过则不执行，继续下一个
-     - `confirm: false`：静默执行，不询问
-   - Read 该 Skill 文件并按其指令执行
-   - 执行完毕后，产出写入 `output` 指定的路径（外部 Skill 自行写入，CodeMan 不干预写入过程）
-3. **产出对接**：后续内部 Skill 的前置条件中，如需外部 Skill 产出，从 `output` 路径读取
-4. **无配置时**：`external_skills` 为空或不存在时，行为与当前完全一致，无任何影响
-5. **execution 类型 hook**：与 before/after 不同，`{阶段名}.execution` hook 不由 orchestrator 在 Step 前后自动检查。它由对应阶段的 Skill 在执行策略选择时主动读取 config.yaml 并检测。当匹配到 execution hook 时，该 Skill 将执行逻辑整体托管给外部 Skill，完成后跳过被替代的内部步骤。
+**Hook 类型（共 3 种）：**
+
+| 类型 | 格式 | 执行时机 | 谁负责 |
+|------|------|---------|--------|
+| before | `{阶段}.before` | Read 阶段 Skill 之前 | **orchestrator** |
+| after | `{阶段}.after` | 阶段 Skill 执行完毕之后 | **orchestrator** |
+| execution | `{阶段}.execution` | 阶段 Skill 内部的执行策略选择时 | **阶段 Skill 自身** |
+
+阶段名对应内部 Skill 目录名：requirements / design / development / testing / review / fix / deploy
+
+**orchestrator 每次调度阶段 Skill 的标准流程（三步）：**
+
+```
+① 读 config.yaml，筛 hook == "{阶段}.before" 的条目 → 按 order 升序逐个执行外部 Skill
+② Read {CODEMAN_HOME}/skills/{阶段}/SKILL.md 并按其内容执行
+③ 读 config.yaml，筛 hook == "{阶段}.after" 的条目 → 按 order 升序逐个执行外部 Skill
+```
+
+**执行外部 Skill 的通用流程（①③ 中每个匹配条目）：**
+
+1. 检查 `path` 文件是否存在。不存在 → 输出 `⚠️ 外部 Skill「{name}」未找到（{path}），已跳过` 并继续
+2. 检查 `confirm` 字段（默认 `true`）：
+   - `confirm: true`：询问用户 `检测到外部 Skill「{name}」— {description}，是否执行？（y/跳过）`
+   - `confirm: false`：静默执行，不询问
+3. 用户确认或静默 → Read `path` 指定的 Skill 文件并按其指令执行
+4. 执行完毕后，产出写入 `output` 指定的路径（外部 Skill 自行写入）
+5. 后续内部 Skill 的前置条件中，如需外部 Skill 产出，从 `output` 路径读取
+
+**无配置时**：`external_skills` 为空或不存在 → 跳过①③，只执行②，行为与无外部 Skill 完全一致。
+
+**execution 类型说明**：与 before/after 不同，`{阶段}.execution` hook 不由 orchestrator 检查。它由对应阶段的 Skill 在执行策略选择时主动读取 config.yaml 并检测（如 development Step 1.5）。匹配到时，该 Skill 将执行逻辑整体托管给外部 Skill，完成后跳过被替代的内部步骤。
 
 **所有场景通用规则：**
 
@@ -271,24 +293,43 @@ Skill 名称与路径映射表：
 ```
 
 **场景一（全新项目）：**
+
+> 每个 S{N} 步骤中调度阶段 Skill 时，均按上方「三步标准流程」执行（① before hook → ② Read SKILL.md → ③ after hook）。
+> 下方 `[hook]` 标记表示该步骤需执行 hook 检查。
+
 ```
-S0: 初始化 → S1: 需求分析 Skill → S2: 技术方案 Skill
-→ S3: 测试验证 Skill 阶段一（生成测试用例，编码前锁定验收基准）
-→ S4: 创建 feat/ 分支 → 开发实现 Skill（checkpoint commit）
-→ S5: 测试验证 Skill 阶段二（编写脚本 + 执行）→ 通过后 squash merge 回主分支
-→ S6: 修复闭环 Skill（如有失败）→ S7: 部署清单 Skill
+S0: 初始化
+→ S1: [hook] Read requirements/SKILL.md 并执行（需求分析）
+→ S2: [hook] Read design/SKILL.md 并执行（技术方案）
+→ S3: [hook] 测试阶段一 —
+     ① Read testing/SKILL.md（加载核心原则：防虚假通过、E2E 优先、证据要求）
+     ② Read testing/phase1-generation.md 并执行（生成 L2-L5 测试用例，编码前锁定验收基准）
+→ S4: [hook] 创建 feat/ 分支 → Read development/SKILL.md 并执行（开发实现，checkpoint commit）
+→ S5: [hook] 测试阶段二 —
+     ① Read testing/SKILL.md（加载核心原则）
+     ② Read testing/phase2-execution.md 并执行（L1→L2→L3 E2E→L4→L5 逐层执行）
+     ③ 按 testing/SKILL.md 中的报告模板生成 test-report-latest.md
+     → 通过后 squash merge 回主分支
+→ S6: [hook] Read fix/SKILL.md 并执行（修复闭环，如有失败）
+→ S7: [hook] Read deploy/SKILL.md 并执行（部署清单）
 ```
 
 **场景二（版本迭代 / 新需求）：**
 ```
 S1: 变更范围识别
 → S1.5: 骨架模块前置补全（如有骨架模块被波及）
-→ S2: 增量需求分析 Skill
-→ S3: 增量技术方案 Skill
-→ S4: 测试验证 Skill 阶段一（生成测试用例 + 受影响老功能回归用例，编码前锁定）
-→ S5: 创建 feat/ 分支 → 增量开发实现 Skill（checkpoint commit）
-→ S6: 测试验证 Skill 阶段二（编写脚本 + 执行 + 项目级稳定性验证）→ 通过后 squash merge 回主分支
-→ S7: 部署清单 Skill
+→ S2: [hook] Read requirements/SKILL.md 并执行（增量需求分析）
+→ S3: [hook] Read design/SKILL.md 并执行（增量技术方案）
+→ S4: [hook] 测试阶段一 —
+     ① Read testing/SKILL.md（加载核心原则）
+     ② Read testing/phase1-generation.md 并执行（生成测试用例 + 受影响老功能回归用例，编码前锁定）
+→ S5: [hook] 创建 feat/ 分支 → Read development/SKILL.md 并执行（增量开发实现，checkpoint commit）
+→ S6: [hook] 测试阶段二 —
+     ① Read testing/SKILL.md（加载核心原则）
+     ② Read testing/phase2-execution.md 并执行（L1→L5 逐层执行 + 项目级稳定性验证）
+     ③ 按 testing/SKILL.md 中的报告模板生成 test-report-latest.md
+     → 通过后 squash merge 回主分支
+→ S7: [hook] Read deploy/SKILL.md 并执行（部署清单）
 ```
 
 **S1.5 骨架模块前置补全（场景二专用）：**
@@ -338,12 +379,17 @@ S0: 项目扫描与理解 → S1: 生成架构文档
 ```
 S0: 解析 + 分类 + 排序 → 用户确认迭代计划
 → S1: 批量 Bug 修复（快速通道，逐个修复）
-→ S2: 合并需求分析（新功能 + 优化统一走需求 Skill）
-→ S3: 合并技术方案 Skill
-→ S4: 测试验证 Skill 阶段一（生成测试用例，编码前锁定）
-→ S5: 逐模块开发实现 Skill
-→ S6: 统一测试验证 Skill 阶段二（编写脚本 + 执行，含 Bug 回归 + 新功能测试）
-→ S7: 部署清单 Skill
+→ S2: [hook] Read requirements/SKILL.md 并执行（合并需求分析，新功能 + 优化统一走需求 Skill）
+→ S3: [hook] Read design/SKILL.md 并执行（合并技术方案）
+→ S4: [hook] 测试阶段一 —
+     ① Read testing/SKILL.md（加载核心原则）
+     ② Read testing/phase1-generation.md 并执行（生成测试用例，编码前锁定）
+→ S5: [hook] Read development/SKILL.md 并执行（逐模块开发实现）
+→ S6: [hook] 测试阶段二 —
+     ① Read testing/SKILL.md（加载核心原则）
+     ② Read testing/phase2-execution.md 并执行（L1→L5 逐层执行，含 Bug 回归 + 新功能测试）
+     ③ 按 testing/SKILL.md 中的报告模板生成 test-report-latest.md
+→ S7: [hook] Read deploy/SKILL.md 并执行（部署清单）
 ```
 
 ---
@@ -1082,7 +1128,12 @@ notes: 旧项目接入完成
 新会话 → 读 STATUS.md
   → 报告恢复状态（阶段、模块、步骤、待处理事项）
   → 询问用户是否继续
-  → 用户确认 → 读取相关碎片文件 → 从中断点继续
+  → 用户确认 →
+     ① 执行阶段边界 before hook（读 config.yaml，筛 {当前phase}.before，按 order 执行）
+     ② Read 当前 phase 对应的 Skill 文件（如 phase=development 则 Read development/SKILL.md，
+        phase=testing 则先 Read testing/SKILL.md 再 Read 对应子文件）
+     ③ 读取相关碎片文件和任务清单
+     ④ 按该 Skill 的流程规则从中断点继续
   → 恢复成本：~1500 tokens
 ```
 
@@ -1093,6 +1144,10 @@ CodeMan 断点续做
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 上次中断于：[阶段] - [模块] - [步骤]
 中断时间：[时间]
+{如 phase=development 且 STATUS.md 有 current_task}
+任务级进度：current_task={T3}, task_progress={3/7}, last_task_done={T2}
+任务清单：.codeman/docs/dev/tasks-{模块名}.md
+{/如}
 待处理事项：
   - [事项1]
   - [事项2]
@@ -1101,6 +1156,17 @@ CodeMan 断点续做
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 是否从中断点继续？
 ```
+
+**development 阶段断点续做特殊处理：**
+
+如果 `phase=development` 且 STATUS.md 中 `current_task` 不为 `-`：
+0. **必须先 Read `{CODEMAN_HOME}/skills/development/SKILL.md`**，重新加载编码阶段的完整流程规则。
+   特别是 Step 1.5 的执行策略选择（外部 Skill 托管 / Subagent 并行 / 串行），以及 `config.yaml`
+   的 `external_skills` 中 `hook: "development.execution"` 的检测。跳过这一步会导致 superpowers
+   等外部执行框架被绕过——主 Agent 会凭记忆里的"编码=直接写代码"认知继续作业，而不会检查 hook。
+1. 必须读取 `.codeman/docs/dev/tasks-{current_module}.md`，恢复任务列表上下文
+2. 从 `current_task` 指向的任务继续，**不要从模块开头重做已完成的任务**
+3. 验证 `last_task_done` 之前的任务在 `tasks-*.md` 中状态确实是 ✅；若状态不一致，提示用户手工确认实际进度
 
 ---
 
@@ -1537,10 +1603,11 @@ path = {HOST_SKILLS_ROOT}/{name}/{skill_path}
 1. 从用户描述中提取信息，缺失的**逐个询问**（不要一次问完）：
    - **name**：Skill 名称（如"brainstorming"）
    - **path**：SKILL.md 文件路径（可自动搜索常见安装路径：`~/.claude/skills/`、`~/.cursor/skills/`）
-   - **hook**：挂载到哪个阶段的哪个步骤。用户说自然语言，orchestrator 转换为格式化值
-     - "需求分析之前" → `requirements.before_step1`
-     - "技术方案的第 2 步之后" → `design.after_step2`
-     - "编码阶段之前" → `development.before_step1`
+   - **hook**：挂载到哪个阶段。用户说自然语言，orchestrator 转换为格式化值
+     - "需求分析之前" → `requirements.before`
+     - "技术方案之后" → `design.after`
+     - "编码阶段之前" → `development.before`
+     - "替代编码执行" → `development.execution`
    - **order**：同一挂载点的执行顺序（默认 1，有多个时询问）
    - **output**：产出路径，问用户"它的产出会写到哪个目录？"（相对于项目根目录）
    - **description**：一句话说明（可自动生成，让用户确认）
@@ -1646,11 +1713,41 @@ Read {CODEMAN_HOME}/skills/orchestrator/SKILL.md
 | 无/1 | 2 | `codeman_config_version` | `2` |
 | 无/1 | 2 | `external_skills` | `[]`（附注释示例） |
 | 2 | 3 | （无新配置项，仅第三方 Skills 配置同步，见 Step 3.5） | — |
+| 3 | 4 | Hook 命名迁移：`{阶段}.before_step{N}` → `{阶段}.before`，`{阶段}.after_step{N}` → `{阶段}.after` | 遍历 `external_skills` 列表，将 hook 字段中含 `before_step` 的改为 `{阶段}.before`，含 `after_step` 的改为 `{阶段}.after`。`execution` 不变。展示变更前后对比供用户确认 |
 
 **迁移流程：**
 1. 展示将追加的配置段，询问用户确认
 2. 确认后在 config.yaml 末尾追加缺失的配置段（只追加不修改已有配置）
 3. 更新 `codeman_config_version` 为目标版本（从 `{CODEMAN_HOME}/templates/config.yaml` 读取的值）
+
+### Step 2.5: 项目目录结构兼容（幂等）
+
+为兼容老项目（在新增目录前已 init 的项目），补建可能缺失的标准子目录和 INDEX 文件。**该步骤幂等，无副作用**：
+
+检查并补建以下目录（不存在时才创建）：
+
+| 目录 | 对应 INDEX 模板 | 说明 |
+|------|----------------|------|
+| `.codeman/docs/dev/` | `{CODEMAN_HOME}/templates/dev/INDEX.md` | 开发任务清单存放目录 |
+
+执行逻辑：
+
+```bash
+# 对每个目录执行
+if [ ! -d ".codeman/docs/dev" ]; then
+  mkdir -p ".codeman/docs/dev"
+  cp "{CODEMAN_HOME}/templates/dev/INDEX.md" ".codeman/docs/dev/INDEX.md"
+  echo "✅ 补建 docs/dev/ 目录及 INDEX"
+else
+  # 目录存在但 INDEX 缺失也补
+  if [ ! -f ".codeman/docs/dev/INDEX.md" ]; then
+    cp "{CODEMAN_HOME}/templates/dev/INDEX.md" ".codeman/docs/dev/INDEX.md"
+    echo "✅ 补建 docs/dev/INDEX.md"
+  fi
+fi
+```
+
+补建结果计入升级摘要：`目录结构：✅ 已补建 N 个目录 / 已是最新`
 
 ### Step 3: 全局规范文件更新
 
@@ -1737,6 +1834,7 @@ CodeMan 升级完成
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 框架文件：✅ 已同步最新版本
 项目配置：✅ 已迁移到 v{N}（或"已是最新"）
+目录结构：✅ 已补建 {N} 个目录（或"已是最新"）
 全局规范：✅ 已更新 {N} 个文件
 第三方 Skills：✅ 新增 {N} 个（或"已是最新"）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

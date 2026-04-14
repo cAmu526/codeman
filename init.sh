@@ -616,6 +616,7 @@ echo -e "${GREEN}Step 7: 创建 .codeman/ 目录结构...${NC}"
 mkdir -p "${PROJECT_DIR}/.codeman/docs/prd"
 mkdir -p "${PROJECT_DIR}/.codeman/docs/design"
 mkdir -p "${PROJECT_DIR}/.codeman/docs/api"
+mkdir -p "${PROJECT_DIR}/.codeman/docs/dev"
 mkdir -p "${PROJECT_DIR}/.codeman/docs/tests"
 mkdir -p "${PROJECT_DIR}/.codeman/docs/reviews"
 mkdir -p "${PROJECT_DIR}/.codeman/docs/deploy"
@@ -644,6 +645,7 @@ cp "${CODEMAN_DIR}/templates/DOMAIN-RULES.md" "${PROJECT_DIR}/.codeman/docs/DOMA
 cp "${CODEMAN_DIR}/templates/prd/INDEX.md" "${PROJECT_DIR}/.codeman/docs/prd/INDEX.md"
 cp "${CODEMAN_DIR}/templates/design/INDEX.md" "${PROJECT_DIR}/.codeman/docs/design/INDEX.md"
 cp "${CODEMAN_DIR}/templates/api/INDEX.md" "${PROJECT_DIR}/.codeman/docs/api/INDEX.md"
+cp "${CODEMAN_DIR}/templates/dev/INDEX.md" "${PROJECT_DIR}/.codeman/docs/dev/INDEX.md"
 cp "${CODEMAN_DIR}/templates/tests/INDEX.md" "${PROJECT_DIR}/.codeman/docs/tests/INDEX.md"
 cp "${CODEMAN_DIR}/templates/reviews/INDEX.md" "${PROJECT_DIR}/.codeman/docs/reviews/INDEX.md"
 cp "${CODEMAN_DIR}/templates/deploy/INDEX.md" "${PROJECT_DIR}/.codeman/docs/deploy/INDEX.md"
@@ -716,10 +718,10 @@ tools:
     timeout: 30000
 
 # CodeMan 配置版本（框架升级时用于自动迁移，请勿手动修改）
-codeman_config_version: 3
+codeman_config_version: 4
 
 # 外部 Skill 注册
-# hook 类型：before_step{N} / after_step{N}（步骤前后）、execution（替换执行逻辑）
+# hook 类型：{阶段}.before / {阶段}.after（阶段前后，orchestrator 检查）、{阶段}.execution（替换执行逻辑）
 external_skills: []
   # 示例：
   # - name: "subagent-driven-development"

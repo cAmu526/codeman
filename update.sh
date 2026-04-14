@@ -503,7 +503,7 @@ registry.append({
     "name": "superpowers",
     "source": "https://github.com/obra/superpowers",
     "skill_path": "skills/brainstorming/SKILL.md",
-    "suggested_hook": "requirements.before_step1",
+    "suggested_hook": "requirements.before",
     "suggested_output": "docs/superpowers/specs/",
     "description": "协作式头脑风暴 + 浏览器可视化 mockup"
 })

@@ -2,7 +2,7 @@
 # 由 init.sh 自动生成，可手动修改
 
 # CodeMan 配置版本（框架升级时用于自动迁移，请勿手动修改）
-codeman_config_version: 3
+codeman_config_version: 4
 
 # 项目基本信息
 project:
@@ -242,14 +242,15 @@ tools:
 # CodeMan 在执行到对应阶段和步骤时，自动 Read 并执行已注册的外部 Skill
 # 无需手动编辑，可通过自然语言配置（如"把 Superpowers 的 brainstorming 挂到需求分析之前"）
 #
-# hook 类型说明：
-#   - {阶段名}.before_step{N} / after_step{N}：在指定步骤前/后执行
+# hook 类型说明（v1.2.1 起简化为阶段级）：
+#   - {阶段名}.before：在该阶段 Skill 执行之前（由 orchestrator 在阶段边界检查）
+#   - {阶段名}.after：在该阶段 Skill 执行之后（由 orchestrator 在阶段边界检查）
 #   - {阶段名}.execution：替换该阶段的执行逻辑（由阶段 Skill 自行检测和托管）
 external_skills: []
   # 示例 1：需求分析前执行头脑风暴
   # - name: "brainstorming"
   #   path: "~/.claude/skills/superpowers/skills/brainstorming/SKILL.md"
-  #   hook: "requirements.before_step1"
+  #   hook: "requirements.before"
   #   order: 1
   #   output: "docs/superpowers/specs/"
   #   description: "Superpowers 协作式需求头脑风暴"

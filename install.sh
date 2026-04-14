@@ -628,9 +628,9 @@ read -p "请输入选项 [a/b/c/d，默认 a]: " EXT_CHOICE
 EXT_CHOICE="${EXT_CHOICE:-a}"
 
 # 推荐 Skills 定义：name|url|skill_path|suggested_hook|suggested_output|description
-RECOMMENDED_1="superpowers|https://github.com/obra/superpowers|skills/brainstorming/SKILL.md|requirements.before_step1|docs/superpowers/specs/|协作式头脑风暴 + 浏览器可视化 mockup"
-RECOMMENDED_2="wireframe|https://github.com/Magdoub/claude-wireframe-skill|SKILL.md|requirements.after_step5|wireframe/|HTML 线框图生成（5 套 UX 方案）"
-RECOMMENDED_3="ui-design-brain|https://github.com/carmahhawwari/ui-design-brain|SKILL.md|development.before_step1||60+ UI 组件最佳实践规则库"
+RECOMMENDED_1="superpowers|https://github.com/obra/superpowers|skills/brainstorming/SKILL.md|requirements.before|docs/superpowers/specs/|协作式头脑风暴 + 浏览器可视化 mockup"
+RECOMMENDED_2="wireframe|https://github.com/Magdoub/claude-wireframe-skill|SKILL.md|requirements.after|wireframe/|HTML 线框图生成（5 套 UX 方案）"
+RECOMMENDED_3="ui-design-brain|https://github.com/carmahhawwari/ui-design-brain|SKILL.md|development.before||60+ UI 组件最佳实践规则库"
 
 # 安装单个第三方 Skill 到所有已选 IDE
 install_ext_skill() {
@@ -754,15 +754,17 @@ case "$EXT_CHOICE" in
             esac
 
             echo "  在该阶段的什么时机？"
-            echo "    1) before_step1（阶段开始前）"
-            echo "    2) after_step{N}（某步之后）"
+            echo "    1) before（阶段开始前）"
+            echo "    2) after（阶段结束后）"
+            echo "    3) execution（替代该阶段的执行逻辑）"
             read -p "  请选择 [默认 1]: " TIMING_CHOICE
             TIMING_CHOICE="${TIMING_CHOICE:-1}"
             if [ "$TIMING_CHOICE" = "2" ]; then
-                read -p "  在第几步之后？请输入步骤号: " STEP_NUM
-                CUSTOM_HOOK="${CUSTOM_PHASE}.after_step${STEP_NUM}"
+                CUSTOM_HOOK="${CUSTOM_PHASE}.after"
+            elif [ "$TIMING_CHOICE" = "3" ]; then
+                CUSTOM_HOOK="${CUSTOM_PHASE}.execution"
             else
-                CUSTOM_HOOK="${CUSTOM_PHASE}.before_step1"
+                CUSTOM_HOOK="${CUSTOM_PHASE}.before"
             fi
 
             read -p "  它的产出目录（相对项目根目录，如 docs/specs/，无则留空）: " CUSTOM_OUTPUT

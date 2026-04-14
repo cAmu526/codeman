@@ -391,7 +391,24 @@ UI 设计资产（如有截图）
 确认任务计划？（或调整拆分粒度/顺序）
 ```
 
-**用户确认后开始执行。**
+**用户确认后，必须执行任务清单落盘（不可省略）：**
+
+1. **写入任务清单文件**：基于 `{CODEMAN_HOME}/templates/dev/tasks-template.md`，在 `.codeman/docs/dev/tasks-{当前模块名}.md` 写入完整任务清单
+   - 任务 ID 从 T1 开始，模块内连续编号
+   - 每个任务的字段（涉及文件、步骤、验证命令、对应测试用例）必须与上面打印的清单一致
+   - 初始状态全部为 ⬜ pending
+   - "执行记录" 表插入第一行：`{时间} | - | 任务清单初始化（共 {N} 个任务） | 模块 {模块名}`
+
+2. **更新 `.codeman/docs/dev/INDEX.md`**：追加或更新当前模块行
+   - 字段：模块名、文件路径、任务总数、已完成（0）、进行中（0）、阻塞（0）、状态（⬜ 未开始）、最后更新时间
+
+3. **更新 `.codeman/docs/STATUS.md`**：
+   - `current_task: T1`
+   - `task_progress: 0/{N}`
+   - `last_task_done: -`
+
+> 落盘是任务级断点续做、Bug 回溯链、跨阶段任务关联的基础，**禁止跳过**。
+> 如果目录 `.codeman/docs/dev/` 不存在（老项目升级前未跑 `CodeMan 升级`），先 `mkdir -p .codeman/docs/dev` 并从 `{CODEMAN_HOME}/templates/dev/INDEX.md` 复制 INDEX 模板后再写入。
 
 ### Step 1.5: 执行策略选择
 
@@ -489,7 +506,29 @@ UI 设计资产（如有截图）
 
 ### Step 2: 逐任务编码
 
-按任务计划中的顺序（依赖关系决定顺序）逐一实现：
+按任务计划中的顺序（依赖关系决定顺序）逐一实现。
+
+**任务级状态机（每个任务的开始/完成都必须实时同步落盘，不可省略）：**
+
+每个任务进入时（编码前）：
+1. 把 `tasks-{模块名}.md` 中该任务状态从 ⬜ 改为 🔄
+2. "执行记录" 表追加一行：`{时间} | T{X} | ⬜ → 🔄 | 开始执行`
+3. 更新 `STATUS.md`：`current_task: T{X}`、`task_progress: {已完成数}/{总数}`
+
+每个任务完成时（编码 + 单测 + 验证全部通过后）：
+1. 把 `tasks-{模块名}.md` 中该任务状态改为 ✅，填入完成时间
+2. "执行记录" 表追加一行：`{时间} | T{X} | 🔄 → ✅ | 已完成（commit 暂未生成，Step 8 时回填 hash）`
+3. 更新 `STATUS.md`：`last_task_done: T{X}`、`task_progress: {新已完成数}/{总数}`、`current_task` 切换为下一个任务（如有）
+4. 如果该任务的"对应测试用例"非空，**记下用例 ID**，待 Step 5b 后批量回写 `impl_tasks` 字段
+
+任务被阻塞时（依赖出问题、需要用户决策、技术方案有歧义等）：
+1. 把任务状态改为 ❌
+2. "执行记录" 表追加一行：`{时间} | T{X} | 🔄 → ❌ | 阻塞原因：{原因}`
+3. 在 `tasks-{模块名}.md` 末尾"备注"章节追加阻塞详情
+4. 暂停并向用户报告（按"不确定即停"协议）
+
+> 子代理并行场景（Step 1.5 策略 2）：每个 subagent 在自己负责的任务前后执行上述状态更新。
+> 外部 Skill 托管场景（Step 1.5 策略 1）：要求外部 Skill 在任务计划中按相同协议同步状态；如外部 Skill 不支持，由本 Skill 在外部 Skill 完成后批量回填状态（统一标记 ✅，commit hash 在 Step 8 后回填）。
 
 **编码原则（严格遵守）：**
 - 严格按照技术方案中的数据模型、接口定义、核心逻辑实现
@@ -784,6 +823,35 @@ UI 设计要求：
 - ⚠️ 部分完成：说明偏差，标注 `[需人工确认]`，等待用户决策
 - ❌ 未完成：必须修复，不得跳过
 
+#### Step 5c: 测试用例反向关联回写（建立 Bug 回溯链）
+
+机械化比对通过后，**回写测试用例文件的 `impl_tasks` 字段**，建立"测试用例 → 实现任务"的反向关联。这是 fix Skill 进行 Bug 回溯（失败用例 → 任务 → commit）的基础。
+
+**操作步骤：**
+
+1. 从 `tasks-{模块名}.md` 提取所有 `done` 任务的"对应测试用例"映射，得到 `用例 ID → [任务 ID 列表]`：
+   ```
+   TC-F001-L1-01 → [T1]
+   TC-F001-L2-01 → [T2, T3]   # 一个用例可能涉及多个任务
+   ```
+2. 对每个用例 ID，定位到 `.codeman/docs/tests/test-{功能名}.md` 中的对应 TC 段
+3. 在 TC 段的 `**实现任务：**` 字段中写入对应的任务 ID 列表（含模块名前缀，如 `mod-auth:T1, mod-auth:T2`）
+   - 如该字段不存在（旧版本生成的测试用例），插入到 `**执行状态：**` 行**之前**（模板中的固定位置）
+   - 如该字段已存在（增量迭代再次涉及此用例），追加新任务 ID 而不是覆盖
+
+**回写后输出确认：**
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+测试用例反向关联回写
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+回写用例数：{N} 个
+更新映射示例：
+  TC-F001-L1-01 ← mod-auth:T1
+  TC-F001-L2-01 ← mod-auth:T2, mod-auth:T3
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
 **跨功能一致性自检（后置对照的一部分，不可跳过）：**
 
 如果本模块涉及了数据模型/枚举/API/组件等可能被其他模块引用的变更，必须额外输出：
@@ -895,10 +963,17 @@ git commit -m "wip({模块名}): {功能描述}
 - 实现 {功能点2}
 - 添加单元测试（覆盖率 {N}%）
 
-Refs: F{ID}"
+Refs: F{ID}
+Tasks: T1, T2, T3"
 ```
 
-> 这些 commit 是开发过程中的 checkpoint，最终会在测试通过后 squash merge 为一个干净的 commit。如果 config.yaml 的 `git.branch_strategy` 为 false，则直接 commit 到当前分支（兼容旧行为）。
+**Tasks: 字段填写规则：**
+- 列出本次 commit 涵盖的所有原子任务 ID（来自 `tasks-{模块名}.md` 中本次提交涉及的任务）
+- 多个任务用逗号分隔，如 `Tasks: T1, T2, T3`
+- 跨模块场景使用 `{模块名}:T{N}` 格式，如 `Tasks: mod-auth:T1, mod-auth:T2, mod-user:T1`
+- commit 完成后，**必须立即回填** `tasks-{模块名}.md` 中对应任务的 `Commit hash` 字段（短 hash，7 位）
+
+> 这些 commit 是开发过程中的 checkpoint，最终会在测试通过后 squash merge 为一个干净的 commit。squash merge 后保留 `Tasks:` 标签便于回溯。如果 config.yaml 的 `git.branch_strategy` 为 false，则直接 commit 到当前分支（兼容旧行为）。
 
 **⚠️ 绝对禁止执行 `git push`。推送操作必须由用户手动完成。**
 
@@ -951,10 +1026,17 @@ Refs: F{ID}"
 ```markdown
 - current_module: {下一个模块}
 - current_step: coding (module {X+1}/{N})
+- current_task: {下一个模块的 T1，如下一个模块未拆任务则填 -}
+- task_progress: {下一个模块的 0/{M}，如未拆任务则填 -}
+- last_task_done: {当前模块的最后一个任务，如 mod-auth:T7}
 - last_updated: {YYYY-MM-DDTHH:MM:SS}
 ```
 
 更新功能点进度表（编码列、单测列标记 ✅）。
+
+**同步更新 `dev/INDEX.md`**：当前模块行的"已完成 / 进行中 / 状态 / 最后更新" 字段。
+
+**所有模块全部完成后**：`current_task: -`、`task_progress: -`、`last_task_done: {最后一个完成的任务，含模块前缀}`。
 
 ---
 
@@ -966,15 +1048,17 @@ Refs: F{ID}"
 对于每个模块：
   0. **上下文回顾** → 重新读取 DIRECTIVES.md + DOMAIN-RULES.md，输出回顾摘要（≤3行）
   1. 前置对照检查（含技术方案细粒度 Checklist + 领域规则对照）→ 人工确认
-  2. 编码实现
+  1.5. **任务拆分** → 输出原子任务计划 → 人工确认 → **落盘** tasks-{模块}.md + 更新 dev/INDEX.md + STATUS.md
+  2. 逐任务编码（每个任务开始/完成时实时同步 tasks-*.md + STATUS.md）
   3. 单元测试
   4. 运行测试
   5. 机械化比对（Grep diff）+ 后置对照自检（含领域规则合规检查）
+  5c. **测试用例反向关联回写**（test-*.md 的 impl_tasks 字段）
   6. 真实运行冒烟验证（有 UI 的模块）
   7. Review 门禁
-  8. Git commit
+  8. Git commit（含 Refs: F* 和 Tasks: T* 标签）→ 回填 commit hash 到 tasks-*.md
   8.5. **领域规则审查**（毕业/升级/新增）
-  9. 更新 STATUS.md
+  9. 更新 STATUS.md（重置任务级字段为下一个模块）+ 更新 dev/INDEX.md
   → 继续下一个模块
 ```
 
@@ -1037,10 +1121,13 @@ Refs: F{ID}"
 |------|------|------|
 | 业务代码 | 项目源码目录 | 按技术方案实现 |
 | 单元测试 | 与源码同目录 | 每个函数/组件对应测试 |
+| 任务清单 | `.codeman/docs/dev/tasks-{模块}.md` | 原子任务全程状态、commit hash、对应测试用例（断点续做和回溯链基础） |
+| 任务清单索引 | `.codeman/docs/dev/INDEX.md` | 各模块任务清单汇总 |
+| 测试用例反向关联 | `.codeman/docs/tests/test-*.md` 的 `impl_tasks` 字段 | 测试用例 → 实现任务的反向映射 |
 | 对照表 | 对话中输出 | 需求实现对照表（含领域规则合规检查） |
-| Review 报告 | `.codeman/docs/reviews/` | 代码 Review 结果 |
-| Git commits | Git 历史 | 每模块一个 commit |
-| STATUS 更新 | `.codeman/docs/STATUS.md` | 实时进度更新 |
+| Review 报告 | `.codeman/docs/reviews/` | 代码 Review 结果（按任务 ID 关联问题） |
+| Git commits | Git 历史 | 每模块一个 commit，含 `Refs:` 和 `Tasks:` 标签 |
+| STATUS 更新 | `.codeman/docs/STATUS.md` | 实时进度更新（任务级粒度） |
 | 项目概览更新 | `.codeman/docs/PROJECT-OVERVIEW.md` | 更新功能地图状态和当前进度 |
 | 领域规则更新 | `.codeman/docs/DOMAIN-RULES.md` 或 `mod-*.md` | 新增/毕业/升级领域规则（如有变动） |
 
