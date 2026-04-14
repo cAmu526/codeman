@@ -1075,6 +1075,25 @@ API 文档（Z 个接口）：
 - 骨架模式下，未生成详细文档的章节标注「待开发时自动补全」
 - 「新成员上手指南」章节根据 config.yaml 中的技术栈填充实际的安装和启动命令
 
+**S3.2: 同步总文档（仅 Mode A）**
+
+Mode A 已生成全部碎片文件，描述的是已在运行的代码，本身就是稳定基线，无需等测试通过。此时立即同步总文档：
+
+**① 同步 PRD-FULL.md：**
+- 读取所有 `prd/feat-*.md`
+- 按分类（核心/增强/可选）组织功能点目录
+- 每个功能点之间用 `---` 分隔
+- 使用模板：`{CODEMAN_HOME}/templates/PRD-FULL.md`
+
+**② 同步 DESIGN-FULL.md：**
+- 读取 `design/arch-overview.md` → 写入「架构概述」章节
+- 读取所有 `design/mod-*.md` → 写入「模块设计」章节
+- 读取所有 `api/api-*.md` → 写入「API 设计」章节
+- 从 mod-*.md 的数据模型部分提取数据库表结构 → 写入「数据库设计」章节
+- 使用模板：`{CODEMAN_HOME}/templates/DESIGN-FULL.md`
+
+> **骨架模式（Mode B）不执行此步骤**——碎片不全，等后续迭代测试通过后由 testing Skill 同步。
+
 **模式 A 完成报告：**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1084,6 +1103,8 @@ CodeMan 旧项目接入完成（完整模式）
 ✅ 模块技术方案：.codeman/docs/design/mod-*.md（共 Y 个模块）
 ✅ API 文档：.codeman/docs/api/api-*.md（共 Z 个接口）
 ✅ 业务 PRD：.codeman/docs/prd/feat-*.md（共 X 个功能点）
+✅ 产品需求全貌：.codeman/docs/PRD-FULL.md（X 个功能点累积）
+✅ 技术设计全貌：.codeman/docs/DESIGN-FULL.md（Y 个模块 / Z 个接口）
 ✅ 项目概览：.codeman/docs/PROJECT-OVERVIEW.md（新成员从这里开始）
 ✅ 项目状态：.codeman/docs/STATUS.md
 ✅ 关键指令：.codeman/docs/DIRECTIVES.md
